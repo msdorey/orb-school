@@ -1,0 +1,1092 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>ORB School</title>
+<meta name="description" content="Opening range breakout course: lessons, quizzes, chart drills and a final exam. Works offline.">
+<meta name="theme-color" content="#0d131a">
+<link rel="manifest" href="manifest.webmanifest">
+<link rel="icon" href="icon-192.png">
+<link rel="apple-touch-icon" href="icon-192.png">
+<style>
+/* Layout: one reading column (max 44rem) under a sticky trading-desk bar; charts span the column; drills read like a tape replay. */
+:root{
+  --bg:#f3f5f8; --surface:#ffffff; --sunk:#e8edf3; --line:#d3dbe5; --fg:#15202b; --muted:#566779;
+  --accent:#9a6200; --accent-ink:#ffffff; --accent-soft:rgba(176,116,10,.12);
+  --up:#0d8767; --down:#c4362e; --vwap:#3c54c2; --orfill:rgba(176,116,10,.14);
+  --f-display:"Roboto Condensed","Arial Narrow","Helvetica Neue",system-ui,sans-serif;
+  --f-body:system-ui,-apple-system,"Segoe UI",Roboto,"Helvetica Neue",sans-serif;
+  --f-mono:ui-monospace,"Roboto Mono","SF Mono",Menlo,Consolas,monospace;
+  --r:10px;
+  color-scheme:light;
+}
+@media (prefers-color-scheme: dark){
+  :root:not([data-theme="light"]){
+    --bg:#0d131a; --surface:#141c26; --sunk:#0a0f15; --line:#263241; --fg:#e3eaf2; --muted:#8b9bb1;
+    --accent:#e3a63e; --accent-ink:#1a1204; --accent-soft:rgba(227,166,62,.14);
+    --up:#2cb994; --down:#f0625b; --vwap:#8ea3ff; --orfill:rgba(227,166,62,.15);
+    color-scheme:dark;
+  }
+}
+:root[data-theme="dark"]{
+  --bg:#0d131a; --surface:#141c26; --sunk:#0a0f15; --line:#263241; --fg:#e3eaf2; --muted:#8b9bb1;
+  --accent:#e3a63e; --accent-ink:#1a1204; --accent-soft:rgba(227,166,62,.14);
+  --up:#2cb994; --down:#f0625b; --vwap:#8ea3ff; --orfill:rgba(227,166,62,.15);
+  color-scheme:dark;
+}
+*{box-sizing:border-box}
+html{-webkit-text-size-adjust:100%;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}
+body{margin:0;background:var(--bg);color:var(--fg);font:16px/1.6 var(--f-body)}
+[hidden]{display:none!important}
+a{color:var(--accent)}
+button{font:inherit;color:inherit}
+:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
+
+.bar{position:sticky;top:env(safe-area-inset-top,0px);z-index:5;background:var(--bg);border-bottom:1px solid var(--line)}
+.bar-in{max-width:44rem;margin:0 auto;padding:.55rem 16px;display:flex;align-items:center;gap:.75rem}
+.brand{font:700 1.15rem/1 var(--f-display);letter-spacing:.02em;text-transform:uppercase;text-decoration:none;color:var(--fg);display:flex;align-items:center;gap:.5rem}
+.brand i{display:inline-block;width:14px;height:14px;border:2px solid var(--accent);border-radius:2px;position:relative}
+.brand i::after{content:"";position:absolute;left:3px;right:3px;top:-6px;height:6px;background:var(--accent)}
+.bar .sp{flex:1}
+.pct{font:600 .8rem var(--f-mono);color:var(--muted);font-variant-numeric:tabular-nums}
+.iconbtn{background:none;border:1px solid var(--line);border-radius:8px;padding:.3rem .55rem;font:600 .75rem var(--f-mono);cursor:pointer;color:var(--muted)}
+
+main{max-width:44rem;margin:0 auto;padding-inline:16px;padding-block:1.25rem 4rem}
+h1,h2,h3{font-family:var(--f-display);line-height:1.15;text-wrap:balance;margin:0}
+h1{font-size:2.3rem;letter-spacing:.005em}
+h2{font-size:1.55rem;margin-top:2.2rem}
+h3{font-size:1.15rem;margin-top:1.5rem}
+p,ul,ol{margin:.75rem 0}
+li{margin:.3rem 0}
+.eyebrow{font:600 .72rem var(--f-mono);letter-spacing:.12em;text-transform:uppercase;color:var(--accent)}
+.muted{color:var(--muted)}
+.mono{font-family:var(--f-mono);font-variant-numeric:tabular-nums}
+.lead{font-size:1.08rem;color:var(--muted)}
+code,.k{font:600 .9em var(--f-mono);background:var(--sunk);padding:.05em .35em;border-radius:4px}
+
+.hero{display:grid;gap:1rem;padding-block:.5rem 1rem}
+.clock{display:flex;flex-wrap:wrap;gap:.5rem 1rem;align-items:center;font:600 .82rem var(--f-mono);color:var(--muted)}
+.clock b{color:var(--fg);font-variant-numeric:tabular-nums}
+.dot{display:inline-block;width:8px;height:8px;border-radius:50%;background:var(--muted);margin-right:.35rem;vertical-align:1px}
+.dot.on{background:var(--up)} .dot.form{background:var(--accent)}
+
+.chart{width:100%;height:auto;display:block;background:var(--surface);border:1px solid var(--line);border-radius:var(--r)}
+.chart text{font-family:var(--f-mono);fill:var(--muted)}
+.c-up{fill:var(--up);stroke:var(--up)} .c-dn{fill:var(--down);stroke:var(--down)}
+.c-grid{stroke:var(--line);stroke-width:1}
+.c-or{fill:var(--orfill)} .c-orl{stroke:var(--accent);stroke-width:1.5;stroke-dasharray:6 5;fill:none}
+.c-vw{stroke:var(--vwap);stroke-width:2;fill:none}
+.c-vol{fill:var(--line)} .c-volhi{fill:var(--accent)}
+.c-tag{fill:var(--accent)} .c-tagt{fill:var(--accent-ink)!important;font-weight:700}
+.c-entry{stroke:var(--fg);stroke-width:1.5;fill:none}
+.c-stop{stroke:var(--down);stroke-width:1.5;stroke-dasharray:4 4;fill:none}
+.c-tgt{stroke:var(--up);stroke-width:1.5;stroke-dasharray:4 4;fill:none}
+.c-sig{fill:var(--accent)} .c-exit{fill:var(--fg)}
+.c-lbl{fill:var(--fg)!important;font-weight:700}
+.legend{display:flex;flex-wrap:wrap;gap:.25rem 1rem;font:.75rem var(--f-mono);color:var(--muted);margin-top:.4rem}
+.legend span::before{content:"";display:inline-block;width:14px;height:3px;margin-right:.35rem;vertical-align:3px;background:currentColor}
+.lg-or{color:var(--accent)} .lg-vw{color:var(--vwap)} .lg-st{color:var(--down)} .lg-tg{color:var(--up)}
+
+.course{display:grid;gap:.6rem;margin-top:1rem;padding:0;list-style:none}
+.mod{display:grid;grid-template-columns:2.4rem 1fr auto;gap:.75rem;align-items:center;text-decoration:none;color:var(--fg);background:var(--surface);border:1px solid var(--line);border-radius:var(--r);padding:.8rem .9rem}
+.mod:hover{border-color:var(--accent)}
+.num{font:700 1.35rem var(--f-display);color:var(--accent);text-align:center;font-variant-numeric:tabular-nums}
+.mod .t{font-weight:650;line-height:1.3}
+.mod .s{font-size:.85rem;color:var(--muted);line-height:1.35;margin-top:.15rem}
+.mod > div{min-width:0}
+.chip{font:600 .7rem var(--f-mono);letter-spacing:.04em;padding:.2rem .45rem;border-radius:999px;border:1px solid var(--line);color:var(--muted);white-space:nowrap}
+.chip.done{border-color:var(--up);color:var(--up)}
+.chip.part{border-color:var(--accent);color:var(--accent)}
+.chip.bad{border-color:var(--down);color:var(--down)}
+.split{display:grid;grid-template-columns:1fr 1fr;gap:.6rem;margin-top:.6rem}
+@media (max-width:520px){.split{grid-template-columns:1fr}}
+.tile{display:block;text-decoration:none;color:var(--fg);background:var(--sunk);border:1px solid var(--line);border-radius:var(--r);padding:.9rem}
+.tile b{font:700 1.15rem var(--f-display);display:block}
+.tile span{font-size:.85rem;color:var(--muted)}
+
+.callout{border-left:3px solid var(--accent);background:var(--accent-soft);padding:.7rem .9rem;border-radius:0 8px 8px 0;margin:1rem 0}
+.callout p{margin:.3rem 0}
+.callout .eyebrow{display:block}
+.example{background:var(--surface);border:1px solid var(--line);border-radius:var(--r);padding:.8rem .95rem;margin:1rem 0}
+.example .row{display:flex;justify-content:space-between;gap:1rem;font-family:var(--f-mono);font-size:.9rem;border-bottom:1px dashed var(--line);padding:.25rem 0;font-variant-numeric:tabular-nums}
+.example .row:last-child{border-bottom:0}
+.example .row span:first-child{color:var(--muted);font-family:var(--f-body)}
+dl.terms{display:grid;grid-template-columns:auto 1fr;gap:.35rem .9rem;margin:1rem 0}
+dl.terms dt{font:700 .85rem var(--f-mono);color:var(--accent);padding-top:.15rem}
+dl.terms dd{margin:0}
+@media (max-width:480px){dl.terms{grid-template-columns:1fr}dl.terms dd{margin-bottom:.4rem}}
+.tw{overflow-x:auto;margin:1rem 0;border:1px solid var(--line);border-radius:var(--r)}
+table{border-collapse:collapse;width:100%;font-size:.88rem;background:var(--surface)}
+th,td{text-align:left;padding:.5rem .65rem;border-bottom:1px solid var(--line);vertical-align:top}
+th{font:600 .72rem var(--f-mono);letter-spacing:.06em;text-transform:uppercase;color:var(--muted);background:var(--sunk)}
+tr:last-child td{border-bottom:0}
+td.n{font-family:var(--f-mono);font-variant-numeric:tabular-nums;white-space:nowrap}
+
+.btn{display:inline-flex;align-items:center;justify-content:center;gap:.4rem;border:1px solid var(--line);background:var(--surface);border-radius:8px;padding:.6rem .95rem;font-weight:600;cursor:pointer;text-decoration:none;color:var(--fg);min-height:44px}
+.btn.primary{background:var(--accent);border-color:var(--accent);color:var(--accent-ink)}
+.btn:disabled{opacity:.45;cursor:default}
+.btns{display:flex;flex-wrap:wrap;gap:.5rem;margin:1rem 0}
+.seg{display:inline-flex;border:1px solid var(--line);border-radius:8px;overflow:hidden;flex-wrap:wrap}
+.seg button{border:0;background:var(--surface);padding:.5rem .8rem;font:600 .82rem var(--f-mono);cursor:pointer;min-height:40px}
+.seg button[aria-pressed="true"]{background:var(--accent);color:var(--accent-ink)}
+.readout{display:grid;grid-template-columns:repeat(auto-fit,minmax(9rem,1fr));gap:.5rem;margin:.75rem 0}
+.readout div{background:var(--sunk);border-radius:8px;padding:.5rem .65rem}
+.readout small{display:block;font:600 .66rem var(--f-mono);letter-spacing:.08em;text-transform:uppercase;color:var(--muted)}
+.readout b{font:700 .95rem var(--f-mono);font-variant-numeric:tabular-nums}
+.form{display:grid;grid-template-columns:repeat(auto-fit,minmax(8.5rem,1fr));gap:.6rem;margin:.75rem 0}
+.form label{display:grid;gap:.2rem;font:600 .72rem var(--f-mono);letter-spacing:.05em;text-transform:uppercase;color:var(--muted)}
+.form input,.form select{font:600 1rem var(--f-mono);padding:.5rem .55rem;border:1px solid var(--line);border-radius:8px;background:var(--surface);color:var(--fg);min-height:44px;width:100%}
+.widget{background:var(--surface);border:1px solid var(--line);border-radius:var(--r);padding:.9rem;margin:1.25rem 0}
+.widget > .eyebrow{display:block;margin-bottom:.4rem}
+
+.quiz{margin-top:2.5rem;border-top:2px solid var(--fg);padding-top:1rem}
+.q{background:var(--surface);border:1px solid var(--line);border-radius:var(--r);padding:.9rem;margin:.8rem 0}
+.q .qn{font:600 .72rem var(--f-mono);color:var(--muted);letter-spacing:.08em}
+.q .qt{font-weight:650;margin:.25rem 0 .6rem}
+.choices{display:grid;gap:.45rem}
+.choice{text-align:left;border:1px solid var(--line);background:var(--bg);border-radius:8px;padding:.6rem .75rem;cursor:pointer;line-height:1.4;min-height:44px}
+.choice:hover:not(:disabled){border-color:var(--accent)}
+.choice:disabled{cursor:default}
+.choice.right{border-color:var(--up);background:color-mix(in srgb,var(--up) 12%,transparent)}
+.choice.wrong{border-color:var(--down);background:color-mix(in srgb,var(--down) 12%,transparent)}
+.choice.picked{border-color:var(--accent);background:var(--accent-soft)}
+.why{margin-top:.6rem;font-size:.92rem;color:var(--muted);border-top:1px dashed var(--line);padding-top:.5rem}
+.why b{color:var(--fg)}
+.score{display:flex;align-items:baseline;gap:.75rem;flex-wrap:wrap;background:var(--sunk);border-radius:var(--r);padding:.9rem;margin-top:1rem}
+.score b{font:700 2rem var(--f-display);font-variant-numeric:tabular-nums}
+.prog{height:6px;background:var(--sunk);border-radius:99px;overflow:hidden;margin:.6rem 0}
+.prog i{display:block;height:100%;background:var(--accent);transition:width .3s}
+.pager{display:flex;justify-content:space-between;gap:.5rem;margin-top:2rem;flex-wrap:wrap}
+
+.ctx{display:grid;grid-template-columns:repeat(auto-fit,minmax(8.2rem,1fr));gap:.4rem;margin:.8rem 0}
+.ctx div{background:var(--surface);border:1px solid var(--line);border-radius:8px;padding:.4rem .55rem;min-width:0}
+.ctx small{display:block;font:600 .64rem var(--f-mono);letter-spacing:.08em;text-transform:uppercase;color:var(--muted)}
+.ctx b{font-size:.9rem;line-height:1.3;display:block}
+.status{display:flex;flex-wrap:wrap;gap:.3rem 1rem;font:600 .82rem var(--f-mono);margin:.6rem 0;font-variant-numeric:tabular-nums}
+.status .pos{color:var(--up)} .status .neg{color:var(--down)}
+.decide{background:var(--surface);border:2px solid var(--accent);border-radius:var(--r);padding:.9rem;margin:.8rem 0}
+.decide h3{margin:0 0 .3rem}
+.opt{display:grid;gap:.4rem;margin:.6rem 0}
+.opt .choice small{display:block;color:var(--muted);font-family:var(--f-mono);font-size:.78rem}
+.grid3{overflow-x:auto}
+.grid3 table td,.grid3 table th{text-align:center}
+.grid3 td.me{outline:2px solid var(--accent);outline-offset:-2px}
+.pos{color:var(--up)} .neg{color:var(--down)}
+.verdict{display:inline-block;font:700 .72rem var(--f-mono);padding:.15rem .45rem;border-radius:6px;letter-spacing:.05em}
+.verdict.ok{background:color-mix(in srgb,var(--up) 16%,transparent);color:var(--up)}
+.verdict.no{background:color-mix(in srgb,var(--down) 16%,transparent);color:var(--down)}
+.install{display:none}
+.install.show{display:block}
+footer{margin-top:3rem;font-size:.8rem;color:var(--muted);border-top:1px solid var(--line);padding-top:1rem}
+@media (prefers-reduced-motion:reduce){*{transition:none!important;animation:none!important}}
+</style>
+</head>
+<body>
+<header class="bar"><div class="bar-in">
+  <a class="brand" href="#home"><i aria-hidden="true"></i>ORB School</a>
+  <span class="sp"></span>
+  <span class="pct" id="pct" title="Course progress">0%</span>
+  <button class="iconbtn" id="theme" type="button" aria-label="Switch theme">AUTO</button>
+</div></header>
+<main id="app"></main>
+
+<script>
+"use strict";
+/* ---------------- storage ---------------- */
+const KEY = "orbSchool.v1";
+function load(){ try{ return JSON.parse(localStorage.getItem(KEY)) || {}; }catch(e){ return {}; } }
+let S = load();
+S.read = S.read || {}; S.quiz = S.quiz || {}; S.drills = S.drills || {}; S.exam = S.exam || {};
+function save(){ try{ localStorage.setItem(KEY, JSON.stringify(S)); }catch(e){} updatePct(); }
+
+/* ---------------- theme ---------------- */
+const THEMES = ["auto","light","dark"];
+function applyTheme(t){
+  if(t === "auto") document.documentElement.removeAttribute("data-theme");
+  else document.documentElement.setAttribute("data-theme", t);
+  document.getElementById("theme").textContent = t.toUpperCase();
+}
+let theme = "auto"; try{ theme = localStorage.getItem("orbSchool.theme") || "auto"; }catch(e){}
+applyTheme(theme);
+document.getElementById("theme").addEventListener("click", () => {
+  theme = THEMES[(THEMES.indexOf(theme)+1) % 3]; applyTheme(theme);
+  try{ localStorage.setItem("orbSchool.theme", theme); }catch(e){}
+});
+
+/* ---------------- helpers ---------------- */
+const $ = (s, el=document) => el.querySelector(s);
+const esc = s => String(s).replace(/[&<>"]/g, c => ({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c]));
+function shuffle(a, r=Math.random){ a=a.slice(); for(let i=a.length-1;i>0;i--){ const j=Math.floor(r()*(i+1)); [a[i],a[j]]=[a[j],a[i]]; } return a; }
+function money(x){ const s = Math.abs(x).toLocaleString("en-US",{maximumFractionDigits:0}); return (x<0?"-$":"$")+s; }
+function rfmt(x){ return (x>=0?"+":"") + x.toFixed(2) + "R"; }
+
+/* ================= ENGINE: simulated sessions ================= */
+function rng(seed){ return function(){ seed|=0; seed=seed+0x6D2B79F5|0; let t=Math.imul(seed^seed>>>15,1|seed); t=t+Math.imul(t^t>>>7,61|t)^t; return ((t^t>>>14)>>>0)/4294967296; }; }
+function gauss(r){ let u=0,v=0; while(!u)u=r(); while(!v)v=r(); return Math.sqrt(-2*Math.log(u))*Math.cos(2*Math.PI*v); }
+const NBARS = 78; // 5-minute bars, 09:30-16:00 ET
+
+/* Prices are built in "range units": ORL = 0, ORH = 1 (W dollars or points wide). */
+function buildDay(s){
+  const r = rng(s.seed), W = s.W, wk = s.wick || 0.1;
+  const px = u => Math.round((s.orl + u*W)/s.tick)*s.tick;
+  const raw = [];
+  s.orShape.forEach(b => raw.push({o:b[0],h:b[1],l:b[2],c:b[3],vm:s.openVol||1.6}));
+  let prev = raw[raw.length-1].c;
+  for(const ph of s.phases){
+    if(ph.force){
+      const o = prev, c = ph.force>0 ? 1+ph.by : -ph.by;
+      const h = Math.max(o,c) + Math.abs(gauss(r))*wk*0.5, l = Math.min(o,c) - Math.abs(gauss(r))*wk*0.5;
+      raw.push({o,h,l,c,vm:ph.vm||1}); prev = c; continue;
+    }
+    const n = ph.n === "rest" ? NBARS - raw.length : ph.n;
+    for(let k=0;k<n;k++){
+      const left = n-k;
+      let o = prev + gauss(r)*0.015;
+      let c = prev + (ph.to - prev)/left + gauss(r)*ph.v;
+      let h = Math.max(o,c) + Math.abs(gauss(r))*wk, l = Math.min(o,c) - Math.abs(gauss(r))*wk;
+      if(ph.clamp){
+        o = Math.min(0.92, Math.max(0.08, o));
+        c = Math.min(0.9, Math.max(0.1, c));
+        h = Math.min(0.97, Math.max(h, Math.max(o,c)));
+        l = Math.max(0.03, Math.min(l, Math.min(o,c)));
+      }
+      raw.push({o,h,l,c,vm:ph.vm||1}); prev = c;
+    }
+  }
+  const bars = raw.slice(0,NBARS).map((b,i) => {
+    const prof = 0.55 + 1.6*Math.exp(-i/7) + 0.7*Math.exp(-(NBARS-1-i)/5);
+    const body = Math.abs(b.c-b.o);
+    const v = s.vbase * prof * (1 + 0.22*gauss(r)) * (1 + 1.2*body) * b.vm;
+    return {o:px(b.o), h:px(b.h), l:px(b.l), c:px(b.c), v:Math.max(1, Math.round(v))};
+  });
+  bars.forEach(b => { b.h = Math.max(b.h,b.o,b.c); b.l = Math.min(b.l,b.o,b.c); });
+  return bars;
+}
+function vwapOf(bars){ let pv=0, vv=0; return bars.map(b => { pv += (b.h+b.l+b.c)/3*b.v; vv += b.v; return pv/vv; }); }
+function analyze(bars, orBars){
+  let orh=-Infinity, orl=Infinity;
+  for(let i=0;i<orBars;i++){ orh=Math.max(orh,bars[i].h); orl=Math.min(orl,bars[i].l); }
+  let up=-1, dn=-1;
+  for(let i=orBars;i<bars.length;i++){ if(up<0 && bars[i].c>orh) up=i; if(dn<0 && bars[i].c<orl) dn=i; }
+  const signals=[]; if(up>=0) signals.push({dir:1,idx:up}); if(dn>=0) signals.push({dir:-1,idx:dn});
+  signals.sort((a,b)=>a.idx-b.idx);
+  return {orBars, orh, orl, mid:(orh+orl)/2, w:orh-orl, signals};
+}
+function stopPrice(bars, info, sig, type, tick){
+  const b = bars[sig.idx];
+  if(type==="or") return sig.dir>0 ? info.orl : info.orh;
+  if(type==="mid") return Math.round(info.mid/tick)*tick;
+  return sig.dir>0 ? b.l - tick : b.h + tick;
+}
+function simulate(bars, vw, info, sig, stopType, tgtType, tick){
+  const d = sig.dir, entry = bars[sig.idx].c, stop = stopPrice(bars, info, sig, stopType, tick);
+  const risk = (entry-stop)*d;
+  const k = tgtType==="1r" ? 1 : tgtType==="2r" ? 2 : null;
+  const target = k ? Math.round((entry + d*k*risk)/tick)*tick : null;
+  const out = (j, px, why) => ({entry, stop, target, risk, exitIdx:j, exit:px, why, R:(px-entry)*d/risk, d, entryIdx:sig.idx, stopType, tgtType});
+  for(let j=sig.idx+1;j<bars.length;j++){
+    const b = bars[j];
+    if(d>0 ? b.l<=stop : b.h>=stop) return out(j, d>0 ? Math.min(b.o,stop) : Math.max(b.o,stop), "stop");
+    if(target!=null){
+      if(d>0 ? b.h>=target : b.l<=target) return out(j, d>0 ? Math.max(b.o,target) : Math.min(b.o,target), "target");
+    } else if((b.c - vw[j])*d < 0) return out(j, b.c, "trail");
+  }
+  const L = bars.length-1; return out(L, bars[L].c, "close");
+}
+function barTime(i, close){ const m = 9*60+30 + 5*i + (close?5:0); return String(Math.floor(m/60)).padStart(2,"0")+":"+String(m%60).padStart(2,"0"); }
+
+/* ---------------- chart (SVG string) ---------------- */
+function chartSVG(bars, o){
+  const sc = o.sc, n = bars.length, upto = o.upto==null ? n-1 : o.upto;
+  const VW = 600, H = 400, x0 = 6, x1 = VW-82, pTop = 40, pBot = 288, vTop = 300, vBot = 360;
+  const step = (x1-x0)/n, bw = Math.max(2.2, step*0.62);
+  const vis = bars.slice(0, upto+1), info = o.info, vw = o.vw;
+  const lv = [];
+  vis.forEach(b => { lv.push(b.h, b.l); });
+  if(info && upto >= info.orBars-1){ lv.push(info.orh, info.orl); }
+  (o.trades||[]).forEach(t => { lv.push(t.stop); if(t.target!=null) lv.push(t.target); });
+  let lo = Math.min(...lv), hi = Math.max(...lv); const pad = (hi-lo)*0.08 || 1; lo -= pad; hi += pad;
+  const y = p => pTop + (hi-p)/(hi-lo)*(pBot-pTop);
+  const X = i => x0 + step*(i+0.5);
+  const f = p => p.toLocaleString("en-US",{minimumFractionDigits:2,maximumFractionDigits:2});
+  let g = "";
+  for(let k=0;k<=4;k++){ const p = lo + (hi-lo)*k/4, yy = y(p); g += `<line class="c-grid" x1="${x0}" x2="${x1}" y1="${yy}" y2="${yy}"/><text x="${x1+5}" y="${yy+6}" font-size="16">${f(p)}</text>`; }
+  for(let i=0;i<n;i+=24){ g += `<line class="c-grid" x1="${X(i)}" x2="${X(i)}" y1="${pTop}" y2="${vBot}" stroke-dasharray="2 6"/><text x="${X(i)}" y="${H-14}" font-size="16" text-anchor="middle">${barTime(i)}</text>`; }
+  if(info && upto >= info.orBars-1){
+    g += `<rect class="c-or" x="${x0}" y="${y(info.orh)}" width="${step*info.orBars}" height="${Math.max(1,y(info.orl)-y(info.orh))}"/>`;
+    g += `<line class="c-orl" x1="${x0}" x2="${x1}" y1="${y(info.orh)}" y2="${y(info.orh)}"/><line class="c-orl" x1="${x0}" x2="${x1}" y1="${y(info.orl)}" y2="${y(info.orl)}"/>`;
+  }
+  const vmax = Math.max(...bars.map(b=>b.v));
+  vis.forEach((b,i) => {
+    const up = b.c >= b.o, cls = up ? "c-up" : "c-dn", yo = y(b.o), yc = y(b.c);
+    g += `<line class="${cls}" x1="${X(i)}" x2="${X(i)}" y1="${y(b.h)}" y2="${y(b.l)}" stroke-width="1.4"/>`;
+    g += `<rect class="${cls}" x="${X(i)-bw/2}" y="${Math.min(yo,yc)}" width="${bw}" height="${Math.max(1.2,Math.abs(yc-yo))}"/>`;
+    const vh = (b.v/vmax)*(vBot-vTop);
+    const hot = (o.hotBars||[]).includes(i);
+    g += `<rect class="${hot?"c-volhi":"c-vol"}" x="${X(i)-bw/2}" y="${vBot-vh}" width="${bw}" height="${vh}"/>`;
+  });
+  if(o.showVwap !== false && vw && upto>0){
+    g += `<polyline class="c-vw" points="${vis.map((b,i)=>X(i)+","+y(vw[i]).toFixed(1)).join(" ")}"/>`;
+  }
+  (o.trades||[]).forEach(t => {
+    const end = Math.min(upto, t.exitIdx==null ? upto : t.exitIdx), xa = X(t.entryIdx), xb = Math.max(X(end), xa+step);
+    g += `<line class="c-entry" x1="${xa}" x2="${xb}" y1="${y(t.entry)}" y2="${y(t.entry)}"/>`;
+    g += `<line class="c-stop" x1="${xa}" x2="${xb}" y1="${y(t.stop)}" y2="${y(t.stop)}"/>`;
+    if(t.target!=null) g += `<line class="c-tgt" x1="${xa}" x2="${xb}" y1="${y(t.target)}" y2="${y(t.target)}"/>`;
+    if(t.exitIdx!=null && t.exitIdx<=upto) g += `<circle class="c-exit" cx="${X(t.exitIdx)}" cy="${y(t.exit)}" r="5"/>`;
+  });
+  (o.marks||[]).forEach(m => {
+    if(m.idx>upto) return; const b = bars[m.idx], xx = X(m.idx);
+    g += m.dir>0 ? `<path class="c-sig" d="M${xx-7} ${y(b.l)+20} L${xx+7} ${y(b.l)+20} L${xx} ${y(b.l)+8} Z"/>` : `<path class="c-sig" d="M${xx-7} ${y(b.h)-20} L${xx+7} ${y(b.h)-20} L${xx} ${y(b.h)-8} Z"/>`;
+  });
+  if(info && upto >= info.orBars-1){
+    const tag = (p, t) => `<rect class="c-tag" x="${x1+2}" y="${y(p)-11}" width="56" height="22" rx="4"/><text class="c-tagt" x="${x1+8}" y="${y(p)+5}" font-size="15">${t}</text>`;
+    g += tag(info.orh, "ORH"); g += tag(info.orl, "ORL");
+  }
+  g += `<text class="c-lbl" x="${x0+4}" y="24" font-size="17">${esc(o.title || sc.sym)}</text>`;
+  if(o.sim !== false) g += `<text x="${x1}" y="24" font-size="14" text-anchor="end">simulated 5-min bars</text>`;
+  return `<svg class="chart" viewBox="0 0 ${VW} ${H}" role="img" aria-label="${esc((o.title||sc.sym)+" intraday chart")}">${g}</svg>`;
+}
+function legend(extra){ return `<div class="legend"><span class="lg-or">Opening range</span><span class="lg-vw">VWAP</span>${extra?'<span class="lg-st">Stop</span><span class="lg-tg">Target</span>':""}</div>`; }
+
+/* ================= DRILL SCENARIOS ================= */
+const SCEN = [
+ { id:"amd", sym:"AMD", title:"Earnings morning", kind:"Stock", seed:11, orl:166.80, W:2.10, tick:0.01, pv:1, unit:"shares", orBars:3, vbase:900000, openVol:1.8,
+   ctx:{Catalyst:"Q3 earnings beat, raised guide", Gap:"+6.4% vs prior close", RVOL:"5.8× (first 15 min)", "Daily ATR":"$5.20", Market:"QQQ green, above its VWAP"},
+   orShape:[[0.35,0.62,0.0,0.55],[0.55,0.80,0.40,0.72],[0.72,1.0,0.60,0.88]],
+   phases:[{n:2,to:0.8,v:0.08,clamp:1},{force:1,by:0.22,vm:2.4},{n:10,to:2.0,v:0.12},{n:8,to:1.75,v:0.1},{n:20,to:2.9,v:0.12},{n:"rest",to:2.7,v:0.1}],
+   coach:[{take:true, stops:["or","mid","bar"], tgts:["trail","2r"], why:"Everything lines up: a real catalyst, relative volume near 6×, the break goes the same way as the gap, price is above VWAP, the index agrees, and the break comes by 10:00 on expanding volume. This is the textbook stock-in-play long. On a trend day a trailing exit (or holding toward the close) usually beats a fixed target."}] },
+ { id:"ko", sym:"KO", title:"Quiet Tuesday", kind:"Stock", seed:7, orl:61.20, W:0.42, tick:0.01, pv:1, unit:"shares", orBars:3, vbase:600000, openVol:1.0,
+   ctx:{Catalyst:"None", Gap:"+0.1%", RVOL:"0.7× (below normal)", "Daily ATR":"$0.95", Market:"SPY flat, mixed"},
+   orShape:[[0.5,0.7,0.2,0.3],[0.3,0.55,0.0,0.45],[0.45,1.0,0.4,0.6]],
+   phases:[{n:4,to:0.75,v:0.1,clamp:1},{force:1,by:0.1,vm:0.75},{n:2,to:0.9,v:0.05},{n:6,to:0.4,v:0.1,clamp:1},{n:22,to:0.5,v:0.1,clamp:1},{force:-1,by:0.08,vm:0.8},{n:4,to:0.2,v:0.06},{n:"rest",to:0.45,v:0.1,clamp:1}],
+   coach:[{take:false, why:"No catalyst, relative volume under 1, and the breakout bar traded lighter than the morning's average bar. A quiet mega-cap with nothing new to price tends to rotate around its opening range. Passing is the trade."},
+          {take:false, why:"Second break, still no volume, and it lands after lunch, well past a late-morning entry cutoff. Same answer: nothing has changed about the stock."}] },
+ { id:"mes", sym:"MES", title:"CPI morning", kind:"Future", seed:5, orl:6038, W:22, tick:0.25, pv:5, unit:"MES contracts", orBars:3, vbase:90000, openVol:1.7,
+   ctx:{Catalyst:"CPI hotter than expected at 08:30 ET", Gap:"-0.9% overnight (Globex)", "Volume":"1.5× normal open", "Daily ATR":"75 pts", Market:"Yields up, NQ weaker than ES"},
+   orShape:[[0.8,1.0,0.45,0.5],[0.5,0.7,0.15,0.25],[0.25,0.45,0.0,0.2]],
+   phases:[{n:1,to:0.15,v:0.06,clamp:1},{force:-1,by:0.25,vm:2.1},{n:8,to:-1.2,v:0.12},{n:6,to:-0.85,v:0.1},{n:25,to:-2.4,v:0.12},{n:"rest",to:-2.1,v:0.1}],
+   coach:[{take:true, stops:["mid","bar","or"], tgts:["2r","trail"], why:"The 08:30 data set the tone before the cash open, the overnight session was already heavy, and the break was down, below VWAP, on about twice the morning's bar volume. Each 15-min range bar printed lower. Shorting the break is in line with every piece of context."}] },
+ { id:"tsla", sym:"TSLA", title:"Deliveries miss", kind:"Stock", seed:23, orl:241.30, W:5.6, tick:0.01, pv:1, unit:"shares", orBars:3, vbase:1400000, openVol:1.5,
+   ctx:{Catalyst:"Deliveries missed estimates", Gap:"-2.5% vs prior close", RVOL:"3.1×", "Daily ATR":"$14.00", Market:"QQQ red, below VWAP"},
+   orShape:[[0.3,0.6,0.0,0.5],[0.5,0.9,0.4,0.8],[0.8,1.0,0.55,0.7]],
+   phases:[{n:2,to:0.85,v:0.08,clamp:1},{force:1,by:0.1,vm:0.7},{n:1,to:1.03,v:0.03},{n:3,to:0.35,v:0.06},{force:-1,by:0.22,vm:2.6},{n:10,to:-1.2,v:0.12},{n:10,to:-0.9,v:0.1},{n:"rest",to:-1.9,v:0.12}],
+   coach:[{take:false, why:"An upside break against a bad-news gap, on a red tape, on lighter volume than the morning's average bar. It closed barely above the range. That is a low-quality long, and these are the breaks that tend to fail."},
+          {take:true, stops:["bar","mid","or"], tgts:["trail","2r"], why:"The failed upside break trapped buyers above the range. Their stops sit under it, so when the low breaks on heavy volume in the direction of the gap and the weak market, that fuel pushes price lower. This second signal is the good one."}] },
+ { id:"mnq", sym:"MNQ", title:"Chip headlines", kind:"Future", seed:31, orl:21280, W:38, tick:0.25, pv:2, unit:"MNQ contracts", orBars:1, vbase:120000, openVol:1.9,
+   ctx:{Catalyst:"Chip stocks bid on AI capex headlines", Gap:"+0.6% overnight", "Volume":"1.8× normal open", "Daily ATR":"330 pts", Market:"ES also above its overnight high"},
+   orShape:[[0.2,1.0,0.0,0.85]],
+   phases:[{n:1,to:0.8,v:0.04,clamp:1},{force:1,by:0.3,vm:1.8},{n:3,to:2.1,v:0.12},{n:3,to:0.62,v:0.05},{n:15,to:3.4,v:0.14},{n:20,to:3.0,v:0.12},{n:"rest",to:4.2,v:0.14}],
+   coach:[{take:true, stops:["or","mid"], tgts:["2r","1r"], why:"A 5-minute range with a strong green first candle, a gap up, and the break on 1.8× volume with ES confirming. Good long. The lesson here is the stop: the breakout bar's low sat inside normal noise and the routine pullback took it out before the trend resumed. With a one-bar range, give the trade the range (or the midpoint)."}] },
+ { id:"spy", sym:"SPY", title:"Fed-speaker day", kind:"ETF", seed:41, orl:668.20, W:4.6, tick:0.01, pv:1, unit:"shares", orBars:3, vbase:2500000, openVol:1.3,
+   ctx:{Catalyst:"None (Fed speakers later)", Gap:"+0.2%", RVOL:"1.0×", "Daily ATR":"$6.50", Market:"Indexes chopping"},
+   orShape:[[0.6,0.95,0.3,0.35],[0.35,0.5,0.0,0.15],[0.15,1.0,0.1,0.9]],
+   phases:[{n:22,to:0.55,v:0.12,clamp:1},{force:1,by:0.06,vm:1.0},{n:5,to:0.6,v:0.08},{n:30,to:0.4,v:0.1,clamp:1},{n:"rest",to:0.55,v:0.1,clamp:1}],
+   coach:[{take:false, why:"The first 15 minutes already covered about 70% of a normal day's range, so there is little room left. Then the first break did not come until late morning, past a typical 11:30 entry cutoff, on ordinary volume. Two strikes. Pass."}] },
+ { id:"meta", sym:"META", title:"Guidance cut", kind:"Stock", seed:53, orl:612.00, W:7.0, tick:0.01, pv:1, unit:"shares", orBars:3, vbase:700000, openVol:2.0,
+   ctx:{Catalyst:"Cut full-year guidance", Gap:"-7.1% vs prior close", RVOL:"7.2×", "Daily ATR":"$18.00", Market:"QQQ slightly red"},
+   orShape:[[0.9,1.0,0.5,0.55],[0.55,0.75,0.25,0.35],[0.35,0.55,0.0,0.1]],
+   phases:[{force:-1,by:0.2,vm:2.8},{n:8,to:-1.3,v:0.12},{n:6,to:-0.7,v:0.1},{n:20,to:-2.3,v:0.14},{n:"rest",to:-2.6,v:0.12}],
+   coach:[{take:true, stops:["or","mid","bar"], tgts:["trail","2r"], why:"Heavy news, relative volume above 7×, three lower range bars, a red first candle, and the break comes the first bar after the range on huge volume. Short, in the direction of the gap. Gap-and-go days like this often trend into the close, which is why the trailing exit shines."}] }
+];
+SCEN.forEach(s => { s.bars = buildDay(s); s.vw = vwapOf(s.bars); s.info = analyze(s.bars, s.orBars); });
+const scen = id => SCEN.find(s => s.id===id);
+
+/* ================= LESSON CONTENT ================= */
+const MODULES = [
+{ id:"m1", title:"What the opening range is", mins:8, blurb:"Why the first minutes of the session carry so much information.",
+html:`
+<p class="lead">The opening range is the high and the low a market prints in the first few minutes of its regular session. An opening range breakout (ORB) trader marks those two prices, buys if price breaks above the high, sells short if it breaks below the low, and is flat by the close.</p>
+<div data-chart="amd" data-upto="14" data-marks="1"></div>
+<h2>Why the open matters</h2>
+<p>Overnight, news piles up: earnings, guidance, analyst calls, economic data, moves in Asia and Europe. Most of it can't be fully traded until the regular session opens. At 09:30 ET the exchanges run an opening auction that matches the orders that built up, and then the day's heaviest trading begins.</p>
+<ul>
+<li><b>Volume is highest at the open and the close.</b> Intraday volume is U-shaped. The first 30 minutes often trade more shares than the two hours around lunch.</li>
+<li><b>Price discovery happens fast.</b> Buyers and sellers test each other in both directions. The range they leave behind shows how far each side was willing to push.</li>
+<li><b>A break says one side won the first round.</b> When price leaves the range, the side that was wrong has to react, and that can feed a move.</li>
+</ul>
+<div class="callout"><span class="eyebrow">Keep this straight</span><p>A breakout is not a prediction. It is a trigger with a defined risk. The edge, where there is one, comes from taking the trigger only under the right conditions and keeping losers small. Modules 4 and 7 cover both.</p></div>
+<h2>Where ORB comes from</h2>
+<p>Toby Crabel's 1990 book <i>Day Trading with Short Term Price Patterns and Opening Range Breakout</i> made the idea popular among futures traders. He measured how often price moved a set distance away from the open and paired that with narrow-range days that tend to precede expansion. Mark Fisher's ACD method (<i>The Logical Trader</i>, 2002) built a full system on opening-range levels plus offsets.</p>
+<p>More recently, Carlo Zarattini, Andrea Barbon and Andrew Aziz studied a 5-minute ORB on more than 7,000 US stocks from 2016 to 2023. Their main finding was that results improved sharply when trading only "stocks in play": names trading far above their normal volume, usually because of news. You'll meet that filter again in Module 4.</p>
+<h2>The basic recipe</h2>
+<ol>
+<li>Pick the range length: 5, 15 or 30 minutes are the common ones.</li>
+<li>When the range is complete, mark its high (ORH) and low (ORL).</li>
+<li>Go long on a break above ORH, or short on a break below ORL.</li>
+<li>Put the stop at a predefined level, usually inside or across the range.</li>
+<li>Exit at a target, on a trailing rule, or at the close. No overnight holds.</li>
+</ol>
+<dl class="terms">
+<dt>RTH</dt><dd>Regular trading hours. For US stocks and the stock-index futures cash session, 09:30-16:00 ET.</dd>
+<dt>OR</dt><dd>Opening range: the high-to-low span of the first N minutes of RTH.</dd>
+<dt>ORH / ORL</dt><dd>Opening range high and low. The two trigger levels.</dd>
+<dt>Breakout</dt><dd>Price trading (or closing a bar) beyond ORH or ORL after the range is complete.</dd>
+<dt>Day trade</dt><dd>Opened and closed in the same session. ORB positions are flat by the close.</dd>
+</dl>`,
+quiz:[
+ {q:"For a 15-minute ORB on a US stock, the opening range is:", c:["The high and low from 09:30 to 09:45 ET","The pre-market high and low from 04:00 to 09:30 ET","The prior day's high and low","The first 15 minutes after the 16:00 close"], a:0, why:"The range is built from the regular session's first N minutes. Pre-market levels are useful references, but they are not the opening range."},
+ {q:"Why does the start of the session carry so much information?", c:["Overnight news and order imbalances get priced in, with the day's heaviest volume","Market makers are not allowed to trade before 10:00","Prices are fixed by the exchange for the first 15 minutes","Institutions only trade at the open"], a:0, why:"The open concentrates everything that built up overnight into a short window of high volume. That's what makes the range meaningful."},
+ {q:"Whose 1990 book popularized the opening range breakout?", c:["Toby Crabel","Mark Minervini","Jesse Livermore","William O'Neil"], a:0, why:"Toby Crabel, <i>Day Trading with Short Term Price Patterns and Opening Range Breakout</i>."},
+ {q:"A pure ORB trade is closed:", c:["By the end of the same session at the latest","After three days","When the stock returns to the prior close","At the next earnings date"], a:0, why:"ORB is a day-trading method. Positions are flat by the close."},
+ {q:"Which statement about a breakout is correct?", c:["It shows which side won the first round; it does not guarantee follow-through","It predicts the day's close","It means the stock will gap again tomorrow","It is only valid if the range was set in pre-market"], a:0, why:"A breakout is a trigger with defined risk, not a forecast."}
+]},
+{ id:"m2", title:"Building the range", mins:10, blurb:"Choosing 5, 15 or 30 minutes, and measuring the range against ATR.",
+html:`
+<p class="lead">Every ORB plan starts with one choice: how long to let the range form. That choice sets how early you can enter, how wide your stop is, and how many false breaks you'll see.</p>
+<h2>Range length is a trade-off</h2>
+<div class="tw"><table>
+<tr><th>Range</th><th>Entry</th><th>Stop</th><th>False breaks</th><th>Room left</th></tr>
+<tr><td class="n">5 min</td><td>Earliest</td><td>Tightest</td><td>Most</td><td>Most</td></tr>
+<tr><td class="n">15 min</td><td>Early</td><td>Moderate</td><td>Fewer</td><td>Plenty</td></tr>
+<tr><td class="n">30 min</td><td>Later</td><td>Wider</td><td>Fewer still</td><td>Less</td></tr>
+<tr><td class="n">60 min</td><td>Late</td><td>Widest</td><td>Fewest</td><td>Least</td></tr>
+</table></div>
+<p>Shorter ranges catch more of the move but trigger on more noise. Longer ranges filter noise but enter later, with a wider stop, after part of the day's move is already gone. There is no correct answer, only a choice you test and then keep.</p>
+<div class="widget" data-widget="range"></div>
+<h2>How to measure it</h2>
+<ul>
+<li>Use bars that divide the window evenly. With 5-minute bars, a 15-minute range is the 09:30, 09:35 and 09:40 bars.</li>
+<li><b>Include the wicks.</b> ORH is the highest high and ORL the lowest low inside the window, not the highest close.</li>
+<li><b>Stocks:</b> pre-market trading is not part of the range. Mark the pre-market high and low separately as reference levels.</li>
+<li><b>Index futures:</b> ES and NQ trade nearly 24 hours, but the ORB uses the 09:30 ET cash-session open, not the 18:00 ET Globex open. The overnight high and low are reference levels (Module 6).</li>
+</ul>
+<h2>Width matters: compare it with ATR</h2>
+<p>ATR (average true range, usually 14 days) is the size of a normal day. Divide the opening range width by the daily ATR:</p>
+<div class="example">
+<div class="row"><span>Opening range width</span><span>$2.10</span></div>
+<div class="row"><span>14-day ATR</span><span>$5.20</span></div>
+<div class="row"><span>Range as % of ATR</span><span>40%</span></div>
+</div>
+<p>A very wide range (say 60-70% of ATR or more) means much of a normal day's movement is already spent before your trigger even fires. A very narrow one leaves plenty of room but can trigger on noise. Many traders skip ranges above a set fraction of ATR. Treat any threshold as something to test, not a law.</p>
+<div class="callout"><span class="eyebrow">Crabel's narrow-range idea</span><p>Volatility contracts and expands. An NR7 day is a day whose high-low range is the narrowest of the last seven days; NR4 uses four. Crabel found that breakouts the day after a narrow-range day tended to travel further. Some traders use NR4/NR7 as a daily filter for which instruments to watch.</p></div>
+<dl class="terms">
+<dt>ATR</dt><dd>Average true range: the average daily high-low span, including gaps. A ruler for "how much does this usually move?"</dd>
+<dt>OR mid</dt><dd>The midpoint of the range. A common stop and a quick read on whether price is holding the upper or lower half.</dd>
+<dt>NR7</dt><dd>The narrowest daily range of the last seven sessions.</dd>
+</dl>`,
+quiz:[
+ {q:"Using 5-minute bars, the 15-minute ORH is:", c:["The highest high of the 09:30, 09:35 and 09:40 bars","The close of the 09:40 bar","The highest close of the first three bars","The open of the 09:45 bar"], a:0, why:"Highs and lows include the wicks. Three 5-minute bars make a 15-minute range."},
+ {q:"What's the main trade-off of a shorter opening range?", c:["Earlier entry and tighter stop, but more false breakouts","Later entry and wider stop, but fewer false breakouts","No trade-off; shorter is always better","It only works on futures"], a:0, why:"Short ranges react to less information, so they trigger on more noise."},
+ {q:"For ES futures, the opening range normally uses:", c:["The 09:30 ET cash-session open","The 18:00 ET Globex open","Midnight ET","The 08:30 ET economic release"], a:0, why:"ES trades almost around the clock, but the ORB uses the regular session open. Overnight levels are references."},
+ {q:"The 15-minute range is 75% of the 14-day ATR. What does that suggest?", c:["Much of a normal day's move is already spent, so follow-through room is limited","The breakout is guaranteed to run another full ATR","The range is too narrow to trade","ATR doesn't apply to intraday trading"], a:0, why:"Width relative to ATR tells you how much of a typical day is already used up."},
+ {q:"An NR7 day is:", c:["A day with the narrowest high-low range of the last seven days","A day that closed lower seven days in a row","The seventh day after earnings","A day with seven times normal volume"], a:0, why:"Crabel's narrow-range days often come before range expansion."}
+]},
+{ id:"m3", title:"The breakout trade", mins:12, blurb:"Entries, stops, targets, and how R keeps score.",
+html:`
+<p class="lead">Once the range is set, every ORB trade has the same three parts: how you get in, where you're wrong, and how you get out. Decide all three before the open.</p>
+<div data-chart="amd" data-upto="77" data-trade="or,2r"></div>
+<h2>Three ways to enter</h2>
+<div class="tw"><table>
+<tr><th>Entry</th><th>How</th><th>Upside</th><th>Downside</th></tr>
+<tr><td>Stop order</td><td>Buy stop 1 tick above ORH (sell stop 1 tick below ORL)</td><td>Never miss the move</td><td>Fills on every fake poke; slippage</td></tr>
+<tr><td>Bar close</td><td>Wait for a 5-min bar to close beyond the level, enter at the close</td><td>Filters many wick-only fakes</td><td>Worse price; stop is further away</td></tr>
+<tr><td>Retest</td><td>After the break, buy a pullback that holds the old ORH</td><td>Best price, tightest stop</td><td>Strong moves often never pull back</td></tr>
+</table></div>
+<p>The drills in this course use the bar-close entry, because it's the easiest to apply consistently and to backtest.</p>
+<h2>Where the stop goes</h2>
+<ul>
+<li><b>Opposite side of the range.</b> The classic choice. If a long breaks back through ORL, the setup is clearly wrong. Widest stop, so fewest shares.</li>
+<li><b>Range midpoint.</b> Half the risk. A breakout that falls back through the middle of the range has usually failed.</li>
+<li><b>Breakout bar low (high for shorts).</b> Tightest. More shares for the same dollar risk, but routine pullbacks hit it more often.</li>
+<li><b>A fraction of ATR.</b> Some research versions size the stop as a small slice of the daily ATR so that risk scales with the stock's normal movement.</li>
+</ul>
+<h2>Keeping score in R</h2>
+<p><b>R</b> is the amount you risk on the trade: entry minus stop for a long. Measuring results in R makes a $20 stock and a $600 stock comparable.</p>
+<div class="example">
+<div class="row"><span>ORH / ORL</span><span>101.20 / 99.80</span></div>
+<div class="row"><span>Bar closes above ORH, entry</span><span>101.45</span></div>
+<div class="row"><span>Stop at ORL, risk per share (1R)</span><span>1.65</span></div>
+<div class="row"><span>2R target</span><span>101.45 + 3.30 = 104.75</span></div>
+<div class="row"><span>Stop at mid 100.50 instead, 1R</span><span>0.95</span></div>
+<div class="row"><span>2R target with the mid stop</span><span>103.35</span></div>
+</div>
+<h2>Getting out</h2>
+<ul>
+<li><b>Fixed R multiple</b> (1R, 2R, 3R). Simple and testable. Caps the big days.</li>
+<li><b>Measured move.</b> Project the range width from the broken level: a 2.00-wide range broken at 80.00 targets 82.00.</li>
+<li><b>Trailing exit.</b> Exit on the first 5-min close back across VWAP, below a prior bar's low, or below a short moving average. Lets trend days run.</li>
+<li><b>End of day.</b> Hold until 15:55. Many research versions of ORB do exactly this; the big winners pay for the many small losers.</li>
+<li><b>Time stop.</b> If the trade hasn't moved in your favor within a set number of bars, get out.</li>
+</ul>
+<div class="callout"><span class="eyebrow">House rule</span><p>Take the first break on each side only. If you're stopped out, don't buy the same breakout again an hour later just because price is back above ORH. That's how a single loss turns into three.</p></div>`,
+quiz:[
+ {q:"Entering with a buy stop 1 tick above ORH:", c:["Never misses the move, but fills on more false breaks","Guarantees the best price of the day","Avoids all slippage","Only works with 30-minute ranges"], a:0, why:"A resting stop order triggers on any poke through the level, including the fakes."},
+ {q:"Entry 50.40, stop 49.90. Where is the 2R target?", c:["51.40","50.90","51.90","52.40"], a:0, why:"1R = 0.50, so 2R = 1.00 above entry: 51.40."},
+ {q:"Which stop gives the trade the most room (and the largest R)?", c:["The opposite side of the range","The range midpoint","The breakout bar's low","One tick below entry"], a:0, why:"The far side of the range is the widest of the standard stops."},
+ {q:"A 2.00-wide range breaks to the upside at 80.00. The measured-move target is:", c:["82.00","81.00","84.00","80.50"], a:0, why:"Project the range width from the broken level: 80.00 + 2.00."},
+ {q:"Why trail with VWAP on a trend day?", c:["It lets the winner run and exits when the intraday trend breaks","VWAP never gets crossed on trend days","It reduces commissions","Exchanges require it"], a:0, why:"A fixed target caps a trend day. A VWAP trail keeps you in until the structure actually changes."}
+]},
+{ id:"m4", title:"Filters that pick the good breaks", mins:12, blurb:"Stocks in play, relative volume, VWAP, gaps, market and time of day.",
+html:`
+<p class="lead">Taking every breakout of every ticker is close to a coin flip after costs. Filters are where the edge lives: they decide which breaks get your money.</p>
+<h2>1. Trade stocks in play</h2>
+<p>A stock in play is trading far above its normal activity today, usually because of news. In the Zarattini, Barbon and Aziz study, restricting the 5-minute ORB to the stocks with the highest <b>relative volume</b> made the difference between a weak strategy and a strong one, even after costs. Their reported top-20 portfolio returned far more than buy-and-hold over 2016-2023. Keep in mind that this is a backtest: real fills, especially at the open, are rougher.</p>
+<div class="example">
+<div class="row"><span>RVOL</span><span>today's volume ÷ normal volume</span></div>
+<div class="row"><span>First 5 min today</span><span>1,200,000 sh</span></div>
+<div class="row"><span>Avg first 5 min, last 14 days</span><span>200,000 sh</span></div>
+<div class="row"><span>RVOL</span><span>6.0×</span></div>
+</div>
+<p>A summary of that paper lists the basic screen as: price above $5, average volume of at least 1 million shares a day over 14 days, and a 14-day ATR above $0.50. Then rank by relative volume and take the top names. Typical catalysts are earnings, guidance changes, FDA decisions, big contracts, upgrades and downgrades.</p>
+<h2>2. First candle direction</h2>
+<p>One published 5-minute version only trades in the direction of the first candle: long if the 09:30 bar closed green, short if it closed red, nothing on a doji. It's a crude but useful read on who won the auction.</p>
+<h2>3. VWAP side</h2>
+<p>VWAP is the volume-weighted average price since the open: roughly the average price everyone paid today. Longs above VWAP and shorts below it put you on the side of the average participant who's already in profit.</p>
+<h2>4. Gap alignment</h2>
+<p>A gap up followed by an upside break is aligned. An upside break after a gap down fights the overnight news and fails more often (unless it's a deliberate gap-fill trade, which is a different setup).</p>
+<h2>5. Market context</h2>
+<p>Check SPY and QQQ (or ES and NQ). A long breakout while the index is breaking down is swimming upstream. Sector ETFs help too.</p>
+<h2>6. Breakout volume</h2>
+<p>The breakout bar should trade more than the bars before it. A break on shrinking volume is a warning.</p>
+<h2>7. Time of day and the calendar</h2>
+<ul>
+<li>The best breaks usually come in the first hour or two. Many plans stop taking new entries around 11:00-11:30 ET; midday breaks drift.</li>
+<li>08:30 ET reports (CPI, jobs, PPI, retail sales, weekly claims) hit before the cash open and shape the overnight range.</li>
+<li>10:00 ET reports (ISM, consumer sentiment, JOLTS) land right as a 30-minute range finishes and can whipsaw it.</li>
+<li>FOMC decisions at 14:00 ET can reverse a morning trend. Some traders are flat before them.</li>
+</ul>
+<h2>Checklist</h2>
+<div class="tw"><table>
+<tr><th>Filter</th><th>Long wants</th><th>Short wants</th></tr>
+<tr><td>Catalyst / RVOL</td><td>News, RVOL well above 1</td><td>News, RVOL well above 1</td></tr>
+<tr><td>First candle</td><td>Green</td><td>Red</td></tr>
+<tr><td>VWAP</td><td>Price above</td><td>Price below</td></tr>
+<tr><td>Gap</td><td>Gap up</td><td>Gap down</td></tr>
+<tr><td>Market</td><td>Index up / above VWAP</td><td>Index down / below VWAP</td></tr>
+<tr><td>Break volume</td><td>Expanding</td><td>Expanding</td></tr>
+<tr><td>Range width</td><td>Not most of ATR</td><td>Not most of ATR</td></tr>
+<tr><td>Time</td><td>Before your cutoff</td><td>Before your cutoff</td></tr>
+</table></div>
+<div class="callout"><span class="eyebrow">Don't stack every filter</span><p>Each filter you add removes trades. With eight filters you may get three trades a year. Pick the few that matter most (RVOL and catalyst first), test them, and keep the rules you can follow.</p></div>`,
+quiz:[
+ {q:"RVOL of 4.0 means:", c:["Today's volume is four times its normal level for that window","The stock moved 4% today","Volatility is four times the market's","Four breakouts occurred"], a:0, why:"Relative volume compares today's volume with the stock's own average for the same window."},
+ {q:"Price breaks above ORH but sits below VWAP, the stock gapped down, and QQQ is red. This long is:", c:["Low quality: it fights VWAP, the gap and the market","High quality: breaks against the trend are strongest","Fine, because only the range matters","Valid only on a Friday"], a:0, why:"Three pieces of context argue against it."},
+ {q:"In the stocks-in-play research, what restriction improved ORB results?", c:["Trading only stocks with unusually high relative volume","Trading only stocks under $5","Trading only on Mondays","Trading only stocks with no news"], a:0, why:"Focusing on stocks in play (high relative volume, usually news-driven) was the paper's key finding."},
+ {q:"The first breakout of the day arrives at 13:15 after a quiet lunch. Most ORB plans would:", c:["Skip it; it's past the entry cutoff","Double the size because it waited","Treat it the same as a 09:50 break","Hold it overnight"], a:0, why:"Late breaks have less time and less volume behind them. Many plans stop new entries by late morning."},
+ {q:"You trade a 30-minute range and ISM is released at 10:00 ET. The risk is:", c:["The release can spike price right as the range completes, so the first break may be news noise","Nothing; ISM only affects bonds","The exchange halts trading at 10:00","ATR resets at 10:00"], a:0, why:"A 09:30-10:00 range finishes exactly as the report hits."}
+]},
+{ id:"m5", title:"Failed breakouts", mins:10, blurb:"Spotting fakeouts, cutting them fast, and trading the other side.",
+html:`
+<p class="lead">Many breakouts fail. You can't avoid that, but you can recognize a failure early, keep the loss small, and sometimes profit from the people who got trapped.</p>
+<div data-chart="tsla" data-upto="77" data-marks="1"></div>
+<p class="muted">Above: an upside break against a gap down on light volume fails within two bars. The downside break that follows is the real move.</p>
+<h2>What a failing break looks like</h2>
+<ul>
+<li>The breakout bar closes just past the level, often with a long wick back toward the range.</li>
+<li>Volume on the break is no bigger than the bars before it.</li>
+<li>Within one to three bars, price closes back inside the range.</li>
+<li>Price can't hold above VWAP (or below it, for shorts).</li>
+<li>The break went against the gap or the market.</li>
+</ul>
+<h2>Why they fail</h2>
+<p>Obvious levels attract orders. Stops from short sellers sit just above ORH, and breakout buyers place buy stops there too. A large seller can use that burst of buying to unload. Once the buying is absorbed and nobody new shows up, price falls back into the range.</p>
+<h2>What to do</h2>
+<ol>
+<li><b>Let the stop work.</b> A failed break should cost you no more than the 1R you planned.</li>
+<li><b>Don't re-buy the same side</b> unless your written plan has a specific re-entry rule.</li>
+<li><b>Watch the other side.</b> If the long fails and price then breaks ORL, that's a new, separate signal. It's often a strong one, because the trapped longs' stops sit under the range and become sell orders.</li>
+<li><b>The fade (advanced).</b> Some traders short the failed upside break once a bar closes back inside the range, with a stop just above the failure high and a target at the midpoint or ORL. Fisher's ACD method has a version of this built in. Treat it as its own setup and test it separately.</li>
+</ol>
+<h2>Chop days</h2>
+<p>Some days price crosses both sides of the range and goes nowhere. Two rules keep chop days cheap: a maximum of one attempt per side, and a daily loss limit (for example, stop trading after -2R).</p>`,
+quiz:[
+ {q:"Which is the clearest sign a breakout is failing?", c:["Price closes back inside the range within a bar or two on fading volume","The breakout bar is green","VWAP is rising","It's a Tuesday"], a:0, why:"A quick close back inside the range is the classic failure signal."},
+ {q:"Why can a breakout in the other direction after a failed break be strong?", c:["Trapped traders' stops on the other side turn into orders in the new direction","Exchanges add liquidity after failures","Volume always doubles at 10:30","It can't; failures end the day's trading"], a:0, why:"The failed side's stops become fuel for the move the other way."},
+ {q:"For a fade of a failed upside break, the stop usually goes:", c:["Just above the failed breakout's high","At ORL","At the prior day's low","There's no stop on fades"], a:0, why:"If price makes a new high above the failure, the fade idea is wrong."},
+ {q:"A good defense against chop days is:", c:["One attempt per side and a daily loss limit","Doubling size after each loss","Removing stops","Switching to a 1-minute range"], a:0, why:"Caps on attempts and losses keep a bad day small."},
+ {q:"Your long is stopped at ORL and price keeps falling through ORL on volume. Under first-break-per-side rules this is:", c:["A valid new short signal if it passes your filters","Forbidden because you just lost","A reason to buy more","A signal to hold the long overnight"], a:0, why:"The downside break is the first break on that side. Judge it on its own merits."}
+]},
+{ id:"m6", title:"ORB on index futures", mins:10, blurb:"ES, NQ and the micros: contract math, sessions and overnight levels.",
+html:`
+<p class="lead">ORB began in futures, and the stock-index contracts are still where many traders run it: one instrument, deep liquidity, nearly round-the-clock trading, and no stock picking.</p>
+<h2>Contract math</h2>
+<div class="tw"><table>
+<tr><th>Contract</th><th>Index</th><th>$ per point</th><th>Tick</th><th>$ per tick</th></tr>
+<tr><td class="n">ES</td><td>E-mini S&amp;P 500</td><td class="n">$50</td><td class="n">0.25</td><td class="n">$12.50</td></tr>
+<tr><td class="n">MES</td><td>Micro E-mini S&amp;P 500</td><td class="n">$5</td><td class="n">0.25</td><td class="n">$1.25</td></tr>
+<tr><td class="n">NQ</td><td>E-mini Nasdaq-100</td><td class="n">$20</td><td class="n">0.25</td><td class="n">$5.00</td></tr>
+<tr><td class="n">MNQ</td><td>Micro E-mini Nasdaq-100</td><td class="n">$2</td><td class="n">0.25</td><td class="n">$0.50</td></tr>
+</table></div>
+<div class="example">
+<div class="row"><span>Short 2 MES, stop 8 points away</span><span>8 × $5 × 2 = $80 risk</span></div>
+<div class="row"><span>Long 1 ES, stop 8 points away</span><span>8 × $50 = $400 risk</span></div>
+<div class="row"><span>Notional of 1 ES at 6,000</span><span>6,000 × $50 = $300,000</span></div>
+</div>
+<p>That last line is why the micros exist. One ES contract is a large position; MES and MNQ let a small account size an ORB trade correctly.</p>
+<h2>Sessions and levels</h2>
+<ul>
+<li>CME equity-index futures trade Sunday to Friday, 18:00 to 17:00 ET, with a one-hour daily break.</li>
+<li>Build the opening range from the <b>09:30 ET</b> cash-session open (08:30 Chicago time).</li>
+<li>Mark the <b>overnight high and low</b> (ONH/ONL), the prior session's high, low and close, and any big pre-open spike.</li>
+<li>An OR break that also clears the overnight high or low has extra fuel; a break straight into the overnight extreme can stall there.</li>
+</ul>
+<div data-chart="mes" data-upto="77" data-trade="mid,2r"></div>
+<h2>The economic calendar runs the morning</h2>
+<p>08:30 ET reports (CPI, payrolls, PPI, retail sales, Thursday claims) land an hour before the cash open. The reaction is already in the overnight range when your opening range starts. A strong surprise often sets the day's direction; an in-line number can leave a choppy, two-sided open.</p>
+<h2>Housekeeping</h2>
+<ul>
+<li><b>Roll.</b> ES and NQ expire quarterly (March, June, September, December). Volume moves to the next contract about a week before expiry; trade the most active month.</li>
+<li><b>Margin and leverage.</b> Brokers set intraday margins that can be very low. Low margin is not low risk: size by your stop, not by what the broker allows.</li>
+<li><b>NQ vs ES.</b> NQ moves more points per day. Scale stops and targets with ATR rather than using the same point values.</li>
+</ul>`,
+quiz:[
+ {q:"What is one tick worth on ES?", c:["$12.50","$5.00","$1.25","$50.00"], a:0, why:"0.25 points × $50 per point."},
+ {q:"You short 2 MES with a stop 8 points away. Dollar risk?", c:["$80","$40","$800","$16"], a:0, why:"8 points × $5 × 2 contracts."},
+ {q:"For an ORB on NQ, the range normally starts at:", c:["09:30 ET, the cash-session open","18:00 ET, the Globex open","08:30 ET, the data release","Midnight ET"], a:0, why:"Same as ES: the regular session open."},
+ {q:"ONH is:", c:["The overnight session's high, a reference level","The opening range high","The next contract's high","The official NYSE open"], a:0, why:"Overnight high. A break that clears both ORH and ONH has extra fuel."},
+ {q:"MNQ, 20-point stop, 3 contracts. Dollar risk?", c:["$120","$60","$1,200","$40"], a:0, why:"20 × $2 × 3."}
+]},
+{ id:"m7", title:"Risk, sizing and expectancy", mins:12, blurb:"Position size from the stop, R expectancy, and daily limits.",
+html:`
+<p class="lead">ORB wins come in a lumpy way: lots of small losses, some scratches, and a few big trend days. Sizing is what lets you survive the losers long enough to collect the big days.</p>
+<h2>Size from the stop</h2>
+<p>Pick a fixed slice of the account to risk on each trade (0.25% to 1% is common). Then let the stop distance decide the size:</p>
+<div class="example">
+<div class="row"><span>Shares</span><span>$ risk ÷ (entry − stop)</span></div>
+<div class="row"><span>Futures contracts</span><span>$ risk ÷ (stop points × $/point)</span></div>
+<div class="row"><span>$30,000 × 0.5%</span><span>$150 risk</span></div>
+<div class="row"><span>Entry 42.00, stop 41.40</span><span>0.60 per share</span></div>
+<div class="row"><span>Size</span><span>250 shares</span></div>
+</div>
+<p>Always round down. If the answer is zero contracts, either the stop is too wide for your account or you need the micro contract. Also check the notional: 250 shares of a $600 stock is $150,000 of buying power.</p>
+<div class="widget" data-widget="size"></div>
+<h2>Expectancy</h2>
+<p>Expectancy is what one trade earns on average, in R:</p>
+<div class="example">
+<div class="row"><span>E</span><span>win% × avg win − loss% × avg loss</span></div>
+<div class="row"><span>40% wins of 2.5R, 60% losses of 1R</span><span>1.00 − 0.60 = +0.40R</span></div>
+<div class="row"><span>Breakeven win rate at 2:1</span><span>1 ÷ (1 + 2) = 33.3%</span></div>
+</div>
+<p>A 40% win rate can be a very good strategy. A 70% win rate can lose money. What matters is the pair.</p>
+<div class="widget" data-widget="exp"></div>
+<h2>Costs eat breakout strategies first</h2>
+<p>You buy when everyone is buying, so you rarely get the level you wanted. Stop orders become market orders and fill worse in fast markets. Commissions and fees add up when you trade daily. Budget slippage into every backtest (a couple of cents a share on liquid stocks, a tick or more on futures at the open) and recheck the expectancy.</p>
+<h2>Daily limits</h2>
+<ul>
+<li>A daily loss limit (for example -2R or -3R) ends the day before frustration does.</li>
+<li>A maximum number of trades per day.</li>
+<li>No adding to losers. No moving the stop further away.</li>
+</ul>
+<h2>Account rules for stock day trading</h2>
+<p>For years, US margin accounts flagged as pattern day traders needed $25,000 in equity. In April 2026 the SEC approved FINRA's amendment that removes that designation and the $25,000 minimum and replaces it with intraday margin standards, effective June 4, 2026, with a phase-in for some firms until October 2027. Your broker may still apply the old rule during its transition, so check its current policy. Futures accounts were never subject to that rule; their limits come from exchange and broker margin.</p>`,
+quiz:[
+ {q:"$30,000 account, 0.5% risk, entry 42.00, stop 41.40. Shares?", c:["250","150","500","714"], a:0, why:"$150 ÷ $0.60 = 250."},
+ {q:"Win rate 40%, average win 2.5R, average loss 1R. Expectancy?", c:["+0.40R per trade","−0.20R per trade","+1.00R per trade","0R"], a:0, why:"0.4 × 2.5 − 0.6 × 1 = 0.40."},
+ {q:"Breakeven win rate for a strategy whose winners are twice its losers:", c:["33.3%","50%","66.7%","25%"], a:0, why:"1 ÷ (1 + 2)."},
+ {q:"Your size calculation says 0.4 ES contracts. You should:", c:["Use MES (micros) or skip the trade","Round up to 1 ES","Move the stop closer until it fits","Use 1 ES and ignore the stop"], a:0, why:"Never round up into more risk. Micros are one-tenth the size."},
+ {q:"Why budget extra slippage for breakout entries?", c:["You buy when everyone buys, and stop orders fill at market","Breakouts have no spread","Brokers refund slippage on breakouts","Slippage only applies to limit orders"], a:0, why:"Momentum entries pay up. A backtest that ignores this overstates results."}
+]},
+{ id:"m8", title:"Your ORB playbook", mins:10, blurb:"A written plan, a daily routine, and how to test it honestly.",
+html:`
+<p class="lead">Everything so far turns into one page of rules you write before the open and follow without debate.</p>
+<h2>Plan template</h2>
+<div class="tw"><table>
+<tr><th>Item</th><th>Example</th></tr>
+<tr><td>Universe</td><td>Top 5 stocks by pre-market RVOL with news, price &gt; $5, avg vol &gt; 1M; plus MES</td></tr>
+<tr><td>Range</td><td>15 minutes (09:30-09:45 ET)</td></tr>
+<tr><td>Entry</td><td>First 5-min close beyond ORH/ORL</td></tr>
+<tr><td>Filters</td><td>RVOL &gt; 2, VWAP side, with the gap, range &lt; 60% ATR</td></tr>
+<tr><td>Stop</td><td>Range midpoint</td></tr>
+<tr><td>Exit</td><td>Half at 2R, rest on a 5-min close across VWAP; all out 15:55</td></tr>
+<tr><td>Cutoff</td><td>No new entries after 11:00 ET</td></tr>
+<tr><td>Risk</td><td>0.5% per trade, max 3 trades, stop at −2R for the day</td></tr>
+</table></div>
+<h2>Daily routine</h2>
+<ol>
+<li><b>Before 09:00 ET:</b> check the economic calendar and earnings; build the watchlist from pre-market movers with news.</li>
+<li><b>09:00-09:25:</b> mark the prior day's high, low and close, plus pre-market (or overnight) high and low.</li>
+<li><b>09:30-09:45:</b> do nothing. Let the range form.</li>
+<li><b>09:45:</b> mark ORH, ORL and the midpoint. Set alerts. Pre-calculate share size for each name.</li>
+<li><b>During the trade:</b> execute the plan. No widening stops.</li>
+<li><b>After the close:</b> journal each trade: screenshot, R result, which rules you followed, which you broke.</li>
+</ol>
+<h2>Testing it honestly</h2>
+<p>Before risking money, backtest the exact rules on intraday data, then paper trade them. Common traps:</p>
+<ul>
+<li><b>Look-ahead bias.</b> The range isn't known until it's complete. Your code must not enter at 09:36 using a high printed at 09:42.</li>
+<li><b>Same-bar ambiguity.</b> If one bar touches both your stop and your target, you can't tell which came first from OHLC data. Assume the stop.</li>
+<li><b>Survivorship and selection.</b> A "stocks in play" list must be built from data available that morning, including stocks that later got delisted.</li>
+<li><b>Costs.</b> Add slippage and commissions, then see what's left.</li>
+<li><b>Overfitting.</b> If the strategy only works with a 17-minute range and a 0.73 ATR filter, it doesn't work.</li>
+</ul>
+<p>Then paper trade for at least 30-50 trades to see whether you can follow the rules live. Then trade small. Scale only after the live results look like the test.</p>
+<div class="callout"><span class="eyebrow">Common mistakes</span><p>Entering before the range is complete. Chasing a break that's already 2R away from the level. Skipping the stop because "it'll come back." Trading every ticker on a quiet day. Raising size after a loss. Ignoring the 08:30 and 10:00 calendar.</p></div>`,
+quiz:[
+ {q:"Look-ahead bias in an ORB backtest means:", c:["Using range highs or lows before the range is complete","Testing on too few years","Using 5-minute bars","Including commissions"], a:0, why:"The code must only use information that existed at the moment of the decision."},
+ {q:"In a backtest, one bar touches both the stop and the target. The conservative assumption:", c:["The stop was hit first","The target was hit first","Split the difference","Ignore the bar"], a:0, why:"OHLC data can't tell you the order, so assume the worse outcome."},
+ {q:"A sensible order of steps before trading ORB with real money:", c:["Backtest, then paper trade, then small live size","Live trade, then backtest","Paper trade one day, then full size","Skip testing if the paper's results were good"], a:0, why:"Each step checks something the previous one can't."},
+ {q:"Which belongs in your post-close journal?", c:["Screenshot, R result, and whether you followed each rule","Only trades that made money","Only the account balance","Nothing; journals cause overthinking"], a:0, why:"Rule adherence is what you can control. Track it."},
+ {q:"Why write the plan before the open?", c:["It moves decisions out of the fast, emotional part of the day","Exchanges require a written plan","It guarantees profits","It lets you skip the stop"], a:0, why:"At 09:46 you want to execute, not deliberate."}
+]}
+];
+
+const EXAM_EXTRA = [
+ {q:"15-min OR 212.00-214.50. Earnings gap +4%, RVOL 6, price above VWAP. The 09:55 bar closes at 214.80 on twice the average bar volume. Best action?", c:["Buy 214.80 with a stop at the midpoint or ORL","Short it; it's extended","Wait until 13:00","Buy and hold for a week"], a:0, why:"Catalyst, RVOL, gap, VWAP and volume all line up for the long."},
+ {q:"NQ gapped down after a hot CPI and sits below VWAP and below the overnight low. It then pokes above ORH on light volume. Best action?", c:["Pass; the break fights the gap, VWAP and the data","Buy aggressively","Short immediately at ORH with no stop","Add to a losing short"], a:0, why:"Every piece of context argues against the long."},
+ {q:"ES range 6,010.00-6,022.00. You short the break at 6,009.00 with a stop at the midpoint. Risk per contract?", c:["7 points: $350 on ES, $35 on MES","12 points: $600 on ES","13 points: $650 on ES","6 points: $300 on ES"], a:0, why:"Mid = 6,016.00. 6,016 − 6,009 = 7 points. ×$50 = $350, ×$5 = $35."},
+ {q:"$50,000 account, 1% risk, MNQ trade with a 25-point stop. How many contracts?", c:["10","20","5","1"], a:0, why:"$500 ÷ (25 × $2) = 10."},
+ {q:"A stock breaks up at 10:05, then closes back inside the range at 10:10 and 10:15 on rising volume. A disciplined ORB trader:", c:["Exits or lets the stop work, and watches ORL for a short","Adds to the long","Removes the stop","Moves the stop below the prior day's low"], a:0, why:"A fast close back inside the range on volume is a failed break."},
+ {q:"The opening range is 1.80 wide and the 14-day ATR is 2.00. The most reasonable read:", c:["90% of a normal day is used up; skip or demand extra confirmation","It's a perfect setup","ATR doesn't matter intraday","The breakout should travel another 2.00 for sure"], a:0, why:"Very little typical room is left."},
+ {q:"It's 12:40 ET and the first breakout of the day just triggered on average volume. Most ORB plans:", c:["Skip it; it's past the entry cutoff","Take double size","Wait for the 16:00 close and enter","Short the next day's open"], a:0, why:"Late breaks have weaker follow-through."},
+ {q:"Win rate 30%, average win 3R, average loss 1R. Expectancy?", c:["+0.20R","−0.10R","+0.90R","−0.70R"], a:0, why:"0.3 × 3 − 0.7 × 1 = 0.2."},
+ {q:"You were stopped out of an upside break. An hour later price is back above ORH. Under first-break-per-side rules:", c:["No new long; the upside break was already taken","Buy again with double size","Buy and remove the stop","Short it because it's high"], a:0, why:"One attempt per side keeps chop days small."},
+ {q:"OR 48.00-49.20 breaks down. The bar closes at 47.95. Measured-move target from the broken level:", c:["46.80","46.75","47.00","45.60"], a:0, why:"Project the 1.20 width from 48.00: 46.80."}
+];
+
+/* ================= VIEWS ================= */
+const app = document.getElementById("app");
+function updatePct(){
+  const total = MODULES.length*2 + SCEN.length + 1;
+  let got = 0;
+  MODULES.forEach(m => { if(S.read[m.id]) got++; if((S.quiz[m.id]||0) >= Math.ceil(m.quiz.length*0.8)) got++; });
+  SCEN.forEach(s => { if(S.drills[s.id]) got++; });
+  if(S.exam.best >= 80) got++;
+  const p = Math.round(got/total*100);
+  document.getElementById("pct").textContent = p + "%";
+  return p;
+}
+
+function etParts(){
+  const parts = new Intl.DateTimeFormat("en-US",{timeZone:"America/New_York",hour12:false,weekday:"short",hour:"2-digit",minute:"2-digit"}).formatToParts(new Date());
+  const get = t => (parts.find(p=>p.type===t)||{}).value;
+  return {wd:get("weekday"), h:+get("hour")%24, m:+get("minute")};
+}
+function marketState(){
+  const {wd,h,m} = etParts(), t = h*60+m, weekend = wd==="Sat"||wd==="Sun";
+  const clock = String(h).padStart(2,"0")+":"+String(m).padStart(2,"0");
+  let st = "Closed", cls = "";
+  if(!weekend){
+    if(t>=240 && t<570) st = "Pre-market";
+    else if(t>=570 && t<585){ st = "15-min range forming"; cls = "form"; }
+    else if(t>=585 && t<960){ st = "Regular session"; cls = "on"; }
+    else if(t>=960 && t<1200) st = "After hours";
+  }
+  return {clock, st, cls};
+}
+
+function viewHome(){
+  const s = scen("amd"), ms = marketState();
+  const modList = MODULES.map((m,i) => {
+    const q = S.quiz[m.id], need = Math.ceil(m.quiz.length*0.8);
+    let chip = `<span class="chip">${m.mins} min</span>`;
+    if(S.read[m.id] && q >= need) chip = `<span class="chip done">Done</span>`;
+    else if(S.read[m.id] || q != null) chip = `<span class="chip part">${q!=null ? "Quiz "+q+"/"+m.quiz.length : "Read"}</span>`;
+    return `<li><a class="mod" href="#${m.id}"><span class="num">${i+1}</span><div><div class="t">${m.title}</div><div class="s">${m.blurb}</div></div>${chip}</a></li>`;
+  }).join("");
+  const drillsDone = SCEN.filter(x => S.drills[x.id]).length;
+  app.innerHTML = `
+  <section class="hero">
+    <div class="clock"><span><span class="dot ${ms.cls}"></span><b id="etc">${ms.clock} ET</b></span><span id="ets">${ms.st}</span></div>
+    <div><div class="eyebrow">Opening range breakout · stocks &amp; index futures</div>
+    <h1>Mark the range. Trade the break. Be flat by the close.</h1></div>
+    <p class="lead">Eight short modules, a quiz after each, seven replayed sessions where you make the calls, and a final exam. Everything works offline once installed.</p>
+    ${chartSVG(s.bars,{sc:s,info:s.info,vw:s.vw,upto:20,marks:s.info.signals.slice(0,1),title:"AMD · 15-min ORB",hotBars:[s.info.signals[0].idx]})}
+    ${legend(false)}
+  </section>
+  <div class="install" id="install"><div class="callout"><span class="eyebrow">Install</span><p>Add ORB School to your home screen to use it offline like an app.</p><button class="btn primary" id="installBtn" type="button">Install app</button></div></div>
+  <h2>Course</h2>
+  <ol class="course">${modList}</ol>
+  <div class="split">
+    <a class="tile" href="#drills"><b>Chart drills</b><span>${drillsDone}/${SCEN.length} sessions played · replay a day bar by bar and make the call</span></a>
+    <a class="tile" href="#exam"><b>Final exam</b><span>${S.exam.best!=null ? "Best "+S.exam.best+"%" : "20 questions"} · pass at 80%</span></a>
+  </div>
+  <div class="btns"><button class="btn" id="reset" type="button">Reset progress</button></div>
+  <p class="muted" id="resetMsg" hidden></p>
+  <footer>Education only, not financial advice. Charts in this app are simulated sessions built to illustrate each setup; tickers are there for context. Research figures are as reported by their authors, from backtests.</footer>`;
+  let armed = false;
+  $("#reset").onclick = () => {
+    if(!armed){ armed = true; $("#reset").textContent = "Tap again to erase all progress"; return; }
+    S = {read:{},quiz:{},drills:{},exam:{}}; save(); viewHome();
+  };
+  if(deferredPrompt){ $("#install").classList.add("show"); $("#installBtn").onclick = async () => { deferredPrompt.prompt(); await deferredPrompt.userChoice; deferredPrompt = null; $("#install").classList.remove("show"); }; }
+}
+
+function mountCharts(root){
+  root.querySelectorAll("[data-chart]").forEach(el => {
+    const s = scen(el.dataset.chart), upto = +el.dataset.upto;
+    const o = {sc:s, info:s.info, vw:s.vw, upto, title:s.sym+" · "+(s.orBars*5)+"-min ORB"};
+    if(el.dataset.marks) o.marks = s.info.signals;
+    if(el.dataset.trade){
+      const [st,tg] = el.dataset.trade.split(","), sig = s.info.signals[0];
+      o.trades = [simulate(s.bars, s.vw, s.info, sig, st, tg, s.tick)];
+      o.marks = [sig];
+    }
+    el.innerHTML = chartSVG(s.bars, o) + legend(!!el.dataset.trade);
+  });
+  root.querySelectorAll("[data-widget]").forEach(el => WIDGETS[el.dataset.widget](el));
+}
+
+const WIDGETS = {
+  range(el){
+    const s = scen("amd"); let ob = 3;
+    const draw = () => {
+      const info = analyze(s.bars, ob), sig = info.signals[0];
+      const hiAfter = sig ? Math.max(...s.bars.slice(sig.idx).map(b=>b.h)) : null;
+      el.innerHTML = `<span class="eyebrow">Try it · range builder</span>
+      <div class="seg" role="group" aria-label="Range length">${[1,3,6].map(b=>`<button type="button" data-b="${b}" aria-pressed="${b===ob}">${b*5} min</button>`).join("")}</div>
+      <div style="margin-top:.6rem">${chartSVG(s.bars,{sc:s,info,vw:s.vw,marks:sig?[sig]:[],title:"AMD · "+(ob*5)+"-min range"})}</div>
+      <div class="readout">
+        <div><small>ORH / ORL</small><b>${info.orh.toFixed(2)} / ${info.orl.toFixed(2)}</b></div>
+        <div><small>Width · % of ATR</small><b>${info.w.toFixed(2)} · ${Math.round(info.w/5.2*100)}%</b></div>
+        <div><small>First break</small><b>${sig ? (sig.dir>0?"Up":"Down")+" at "+barTime(sig.idx,true) : "None"}</b></div>
+        <div><small>Entry → day high</small><b>${sig ? (hiAfter - s.bars[sig.idx].c).toFixed(2)+" ("+((hiAfter - s.bars[sig.idx].c)/info.w).toFixed(1)+"× width)" : "–"}</b></div>
+      </div>
+      <p class="muted" style="margin:0">Same day, three range lengths. Watch the stop distance (the width) grow and the room after entry shrink as the range gets longer.</p>`;
+      el.querySelectorAll("[data-b]").forEach(b => b.onclick = () => { ob = +b.dataset.b; draw(); });
+    };
+    draw();
+  },
+  size(el){
+    const inst = {stock:{n:"Stock / ETF",pv:1,u:"shares"},mes:{n:"MES ($5/pt)",pv:5,u:"contracts"},es:{n:"ES ($50/pt)",pv:50,u:"contracts"},mnq:{n:"MNQ ($2/pt)",pv:2,u:"contracts"},nq:{n:"NQ ($20/pt)",pv:20,u:"contracts"}};
+    el.innerHTML = `<span class="eyebrow">Position size calculator</span>
+    <div class="form">
+      <label for="sz-acct">Account $<input id="sz-acct" type="number" inputmode="decimal" value="30000"></label>
+      <label for="sz-risk">Risk %<input id="sz-risk" type="number" inputmode="decimal" step="0.05" value="0.5"></label>
+      <label for="sz-inst">Instrument<select id="sz-inst">${Object.entries(inst).map(([k,v])=>`<option value="${k}">${v.n}</option>`).join("")}</select></label>
+      <label for="sz-entry">Entry<input id="sz-entry" type="number" inputmode="decimal" step="0.01" value="42.00"></label>
+      <label for="sz-stop">Stop<input id="sz-stop" type="number" inputmode="decimal" step="0.01" value="41.40"></label>
+    </div><div class="readout" id="sz-out"></div>`;
+    const calc = () => {
+      const a = +$("#sz-acct",el).value, rp = +$("#sz-risk",el).value, I = inst[$("#sz-inst",el).value];
+      const e = +$("#sz-entry",el).value, st = +$("#sz-stop",el).value;
+      const dr = a*rp/100, per = Math.abs(e-st)*I.pv;
+      const n = per>0 ? Math.floor(dr/per + 1e-9) : 0, notional = n*e*I.pv;
+      $("#sz-out",el).innerHTML = `<div><small>$ at risk</small><b>${money(dr)}</b></div><div><small>Risk per ${I.u==="shares"?"share":"contract"}</small><b>${per>0?"$"+per.toFixed(2):"–"}</b></div><div><small>Size</small><b>${n.toLocaleString()} ${I.u}</b></div><div><small>Notional</small><b>${money(notional)}</b></div>` + (n===0 && per>0 ? `<div style="grid-column:1/-1"><small>Note</small><b style="font-size:.9rem">Stop too wide for this risk. Use a micro contract or skip.</b></div>` : "");
+    };
+    el.querySelectorAll("input,select").forEach(i => i.addEventListener("input", calc)); calc();
+  },
+  exp(el){
+    el.innerHTML = `<span class="eyebrow">Expectancy calculator</span>
+    <div class="form">
+      <label for="ex-w">Win rate %<input id="ex-w" type="number" inputmode="decimal" value="40"></label>
+      <label for="ex-aw">Avg win (R)<input id="ex-aw" type="number" inputmode="decimal" step="0.1" value="2.5"></label>
+      <label for="ex-al">Avg loss (R)<input id="ex-al" type="number" inputmode="decimal" step="0.1" value="1"></label>
+    </div><div class="readout" id="ex-out"></div>`;
+    const calc = () => {
+      const w = +$("#ex-w",el).value/100, aw = +$("#ex-aw",el).value, al = +$("#ex-al",el).value;
+      const E = w*aw - (1-w)*al, be = al/(aw+al);
+      $("#ex-out",el).innerHTML = `<div><small>Per trade</small><b class="${E>=0?"pos":"neg"}">${rfmt(E)}</b></div><div><small>Per 100 trades</small><b class="${E>=0?"pos":"neg"}">${rfmt(E*100)}</b></div><div><small>Breakeven win rate</small><b>${isFinite(be)?(be*100).toFixed(1)+"%":"–"}</b></div>`;
+    };
+    el.querySelectorAll("input").forEach(i => i.addEventListener("input", calc)); calc();
+  }
+};
+
+function quizHTML(qs, key){
+  return qs.map((q,i) => {
+    const order = shuffle(q.c.map((c,j)=>j));
+    return `<div class="q" data-i="${i}"><div class="qn">QUESTION ${i+1} OF ${qs.length}</div><div class="qt">${q.q}</div>
+      <div class="choices">${order.map(j=>`<button type="button" class="choice" data-j="${j}">${q.c[j]}</button>`).join("")}</div>
+      <div class="why" hidden></div></div>`;
+  }).join("");
+}
+function wireQuiz(root, qs, onDone){
+  let answered = 0, right = 0;
+  root.querySelectorAll(".q").forEach(qe => {
+    const q = qs[+qe.dataset.i];
+    qe.querySelectorAll(".choice").forEach(b => b.onclick = () => {
+      const j = +b.dataset.j, ok = j === q.a;
+      qe.querySelectorAll(".choice").forEach(x => { x.disabled = true; if(+x.dataset.j === q.a) x.classList.add("right"); });
+      if(!ok) b.classList.add("wrong");
+      const w = qe.querySelector(".why"); w.hidden = false; w.innerHTML = `<b>${ok?"Correct.":"Not quite."}</b> ${q.why}`;
+      answered++; if(ok) right++;
+      if(answered === qs.length) onDone(right);
+    });
+  });
+}
+
+function viewModule(id){
+  const i = MODULES.findIndex(m => m.id===id), m = MODULES[i];
+  const prev = MODULES[i-1], next = MODULES[i+1];
+  app.innerHTML = `<div class="eyebrow">Module ${i+1} of ${MODULES.length} · ${m.mins} min</div><h1>${m.title}</h1>
+  <article id="lesson">${m.html}</article>
+  <div class="btns"><button class="btn" id="markRead" type="button">${S.read[m.id]?"Marked as read":"Mark as read"}</button></div>
+  <section class="quiz"><div class="eyebrow">Check yourself</div><h2 style="margin-top:.2rem">Module ${i+1} quiz</h2>
+  <p class="muted">Tap an answer to see why. Score 80% or better to complete the module.${S.quiz[m.id]!=null?" Best so far: "+S.quiz[m.id]+"/"+m.quiz.length+".":""}</p>
+  <div id="qz">${quizHTML(m.quiz)}</div><div id="qres"></div></section>
+  <nav class="pager">${prev?`<a class="btn" href="#${prev.id}">← ${prev.title}</a>`:`<a class="btn" href="#home">← Course</a>`}${next?`<a class="btn primary" href="#${next.id}">${next.title} →</a>`:`<a class="btn primary" href="#drills">Chart drills →</a>`}</nav>`;
+  mountCharts($("#lesson"));
+  $("#markRead").onclick = () => { S.read[m.id] = true; save(); $("#markRead").textContent = "Marked as read"; };
+  const run = () => wireQuiz($("#qz"), m.quiz, right => {
+    S.quiz[m.id] = Math.max(S.quiz[m.id]||0, right); S.read[m.id] = true; save();
+    $("#markRead").textContent = "Marked as read";
+    const pass = right >= Math.ceil(m.quiz.length*0.8);
+    $("#qres").innerHTML = `<div class="score"><b>${right}/${m.quiz.length}</b><span>${pass?"Module complete.":"Reread the sections you missed and try again."}</span><button class="btn" id="retake" type="button">Retake</button></div>`;
+    $("#retake").onclick = () => { $("#qz").innerHTML = quizHTML(m.quiz); $("#qres").innerHTML = ""; run(); $("#qz").scrollIntoView({behavior:"smooth"}); };
+  });
+  run();
+}
+
+/* ---------------- drills ---------------- */
+function viewDrills(){
+  app.innerHTML = `<div class="eyebrow">Practice</div><h1>Chart drills</h1>
+  <p class="lead">Each drill replays one simulated session bar by bar. When price closes outside the opening range, you decide: take it or pass, and if you take it, where the stop and exit go. Then the rest of the day plays out and you see every alternative.</p>
+  <ol class="course">${SCEN.map((s,i)=>{ const d=S.drills[s.id]; return `<li><a class="mod" href="#drill-${s.id}"><span class="num">${i+1}</span><div><div class="t">${s.sym} · ${s.title}</div><div class="s">${s.kind} · ${s.orBars*5}-min range</div></div>${d?`<span class="chip ${d.score/d.max>=0.75?"done":"part"}">${d.score}/${d.max}</span>`:`<span class="chip">New</span>`}</a></li>`; }).join("")}</ol>
+  <p class="muted">Scoring: 2 points for the right take/pass call, plus 1 each for a sound stop and exit when the trade should be taken. Results are graded on process, then shown in R so you can see what each choice would have done.</p>`;
+}
+
+function viewDrill(id){
+  const s = scen(id), info = s.info;
+  const st = {i: s.orBars-1, trades:[], dec:[], sigPos:0, pending:null, timer:null};
+  const avgVol = i => { const a = s.bars.slice(0,i); return a.reduce((t,b)=>t+b.v,0)/a.length; };
+  const openTrade = i => st.trades.find(t => t.entryIdx < i && t.exitIdx >= i);
+  const sigAt = i => info.signals.find(x => x.idx===i);
+
+  app.innerHTML = `<a href="#drills" class="muted">← All drills</a>
+  <div class="eyebrow" style="margin-top:.6rem">${s.kind} · ${s.orBars*5}-min range · simulated session</div>
+  <h1>${s.sym} · ${s.title}</h1>
+  <div class="ctx">${Object.entries(s.ctx).map(([k,v])=>`<div><small>${k}</small><b>${v}</b></div>`).join("")}<div><small>OR width</small><b id="dw">–</b></div></div>
+  <div id="dchart"></div>
+  <div class="status" id="dstat"></div>
+  <div id="dpanel"></div>`;
+
+  function render(){
+    const marks = info.signals.filter(x => x.idx <= st.i);
+    const hot = marks.map(x=>x.idx);
+    $("#dchart").innerHTML = chartSVG(s.bars,{sc:s,info,vw:s.vw,upto:st.i,trades:st.trades,marks,hotBars:hot,title:s.sym}) + legend(st.trades.length>0);
+    $("#dw").textContent = `${info.w.toFixed(2)} (${Math.round(info.w/parseFloat(s.ctx["Daily ATR"].replace(/[^0-9.]/g,""))*100)}% ATR)`;
+    const b = s.bars[st.i], ot = openTrade(st.i+1) || st.trades.find(t => t.entryIdx === st.i);
+    let open = "";
+    if(ot && st.i < ot.exitIdx){ const r = (b.c-ot.entry)*ot.d/ot.risk; open = `<span class="${r>=0?"pos":"neg"}">Open ${rfmt(r)}</span>`; }
+    $("#dstat").innerHTML = `<span>${barTime(st.i,true)} ET</span><span>Last ${b.c.toLocaleString("en-US",{minimumFractionDigits:2})}</span><span>${b.c>=s.vw[st.i]?"Above":"Below"} VWAP</span>${open}`;
+  }
+
+  function controls(){
+    const done = st.i >= s.bars.length-1;
+    if(done){ debrief(); return; }
+    $("#dpanel").innerHTML = `<div class="btns"><button class="btn" id="nb" type="button">Next bar</button><button class="btn primary" id="play" type="button">${st.timer?"Pause":"Play"}</button></div>
+    <p class="muted" style="margin:0">${st.i===s.orBars-1?"The opening range is complete. Play forward; the replay stops when a bar closes outside the range.":""}</p>`;
+    $("#nb").onclick = () => { stopTimer(); step(); };
+    $("#play").onclick = () => { if(st.timer){ stopTimer(); controls(); } else { st.timer = setInterval(step, matchMedia("(prefers-reduced-motion: reduce)").matches ? 20 : 110); controls(); } };
+  }
+  function stopTimer(){ if(st.timer){ clearInterval(st.timer); st.timer = null; } }
+
+  function step(){
+    if(st.i >= s.bars.length-1){ stopTimer(); controls(); return; }
+    st.i++;
+    render();
+    const sig = sigAt(st.i);
+    if(sig){
+      const busy = st.trades.find(t => t.entryIdx < st.i && t.exitIdx >= st.i);
+      const k = info.signals.indexOf(sig);
+      if(busy){ st.dec.push({k, skipped:true}); }
+      else { stopTimer(); decide(sig, k); return; }
+    }
+    if(st.i >= s.bars.length-1){ stopTimer(); debrief(); return; }
+    if(!st.timer) controls();
+  }
+
+  function decide(sig, k){
+    const b = s.bars[sig.idx], up = sig.dir>0, vr = b.v/avgVol(sig.idx);
+    const lvl = up ? info.orh : info.orl, f = p => p.toLocaleString("en-US",{minimumFractionDigits:2,maximumFractionDigits:2});
+    const sv = t => stopPrice(s.bars, info, sig, t, s.tick);
+    const stopOpts = [["or","Opposite side of range"],["mid","Range midpoint"],["bar",up?"Breakout bar low":"Breakout bar high"]];
+    const tgtOpts = [["1r","1R target"],["2r","2R target"],["trail","Trail: exit on a 5-min close across VWAP (else at the close)"]];
+    let pick = {take:null, stop:null, tgt:null};
+    const sizeFor = t => { const per = Math.abs(b.c - sv(t))*s.pv; return Math.floor(250/per + 1e-9); };
+    $("#dpanel").innerHTML = `<div class="decide"><div class="eyebrow">Signal ${k+1} · ${barTime(sig.idx,true)} ET</div>
+      <h3>Bar closed at ${f(b.c)}, ${up?"above ORH":"below ORL"} ${f(lvl)}</h3>
+      <p style="margin:.3rem 0">Breakout bar volume is <b>${vr.toFixed(1)}×</b> the session's average bar so far. Price is <b>${b.c>=s.vw[sig.idx]?"above":"below"} VWAP</b> (${f(s.vw[sig.idx])}).</p>
+      <div class="opt" id="o1"><button type="button" class="choice" data-v="take">${up?"Buy the breakout":"Short the breakdown"} at ${f(b.c)}</button><button type="button" class="choice" data-v="pass">Pass</button></div>
+      <div id="o2" hidden><div class="eyebrow">Stop</div><div class="opt">${stopOpts.map(([v,n])=>{ const r=Math.abs(b.c-sv(v)); return `<button type="button" class="choice" data-v="${v}">${n}<small>${f(sv(v))} · risk ${f(r)} · ${sizeFor(v)} ${s.unit} at $250 risk</small></button>`; }).join("")}</div></div>
+      <div id="o3" hidden><div class="eyebrow">Exit</div><div class="opt">${tgtOpts.map(([v,n])=>`<button type="button" class="choice" data-v="${v}">${n}</button>`).join("")}</div></div>
+      <div class="btns"><button class="btn primary" id="go" type="button" disabled>Confirm and continue</button></div></div>`;
+    const sel = (box, v) => box.querySelectorAll(".choice").forEach(x => x.classList.toggle("picked", x.dataset.v===v));
+    const ready = () => { $("#go").disabled = !(pick.take==="pass" || (pick.take==="take" && pick.stop && pick.tgt)); };
+    $("#o1").querySelectorAll(".choice").forEach(c => c.onclick = () => { pick.take = c.dataset.v; sel($("#o1"), pick.take); $("#o2").hidden = $("#o3").hidden = pick.take!=="take"; ready(); });
+    $("#o2").querySelectorAll(".choice").forEach(c => c.onclick = () => { pick.stop = c.dataset.v; sel($("#o2"), pick.stop); ready(); });
+    $("#o3").querySelectorAll(".choice").forEach(c => c.onclick = () => { pick.tgt = c.dataset.v; sel($("#o3"), pick.tgt); ready(); });
+    $("#go").onclick = () => {
+      const d = {k, take: pick.take==="take", stop:pick.stop, tgt:pick.tgt};
+      if(d.take){ const t = simulate(s.bars, s.vw, info, sig, pick.stop, pick.tgt, s.tick); t.size = sizeFor(pick.stop); st.trades.push(t); d.trade = t; }
+      st.dec.push(d); render(); controls();
+    };
+    $("#dpanel").scrollIntoView({behavior:"smooth", block:"nearest"});
+  }
+
+  function debrief(){
+    let score = 0, max = 0;
+    const blocks = st.dec.map(d => {
+      const sig = info.signals[d.k], c = s.coach[d.k] || {take:false, why:""};
+      if(d.skipped) return `<div class="q"><div class="qn">SIGNAL ${d.k+1} · ${barTime(sig.idx,true)}</div><p>You were still in a trade, so this signal was skipped.</p><p class="muted">${c.why}</p></div>`;
+      max += c.take ? 4 : 2;
+      const okAct = d.take === c.take; if(okAct) score += 2;
+      let pts = okAct ? 2 : 0;
+      if(c.take && d.take){ if(c.stops.includes(d.stop)){score++;pts++;} if(c.tgts.includes(d.tgt)){score++;pts++;} }
+      const grid = ["or","mid","bar"].map(sv => `<tr><th>${{or:"Range",mid:"Mid",bar:"Bar"}[sv]}</th>${["1r","2r","trail"].map(tv => { const r = simulate(s.bars,s.vw,info,sig,sv,tv,s.tick).R; const me = d.take && d.stop===sv && d.tgt===tv; return `<td class="n ${r>=0?"pos":"neg"} ${me?"me":""}">${rfmt(r)}</td>`; }).join("")}</tr>`).join("");
+      const yours = d.take ? `${sig.dir>0?"Long":"Short"}, stop ${({or:"range",mid:"midpoint",bar:"bar"})[d.stop]}, exit ${({"1r":"1R","2r":"2R",trail:"trail"})[d.tgt]}: <b class="${d.trade.R>=0?"pos":"neg"}">${rfmt(d.trade.R)}</b> (${d.trade.size} ${s.unit}, ${money(d.trade.R*d.trade.risk*d.trade.size*s.pv)}; exit ${d.trade.why} at ${barTime(d.trade.exitIdx,true)})` : "Passed";
+      return `<div class="q"><div class="qn">SIGNAL ${d.k+1} · ${sig.dir>0?"UPSIDE":"DOWNSIDE"} BREAK · ${barTime(sig.idx,true)} ET</div>
+        <p style="margin:.3rem 0"><span class="verdict ${okAct?"ok":"no"}">${okAct?"GOOD CALL":"COACH DISAGREES"}</span> <span class="mono">+${pts}</span></p>
+        <p style="margin:.3rem 0">You: ${yours}</p>
+        <p style="margin:.3rem 0">Coach: <b>${c.take?(sig.dir>0?"Take the long":"Take the short"):"Pass"}</b>. ${c.why}</p>
+        <div class="eyebrow" style="margin-top:.6rem">What each version would have done</div>
+        <div class="grid3 tw"><table><tr><th>Stop \\ Exit</th><th>1R</th><th>2R</th><th>Trail</th></tr>${grid}</table></div></div>`;
+    }).join("");
+    if(max === 0){ max = 1; score = 1; }
+    S.drills[s.id] = {score: Math.max(score, (S.drills[s.id]||{}).score||0), max}; save();
+    const total = st.trades.reduce((t,x)=>t+x.R,0);
+    $("#dpanel").innerHTML = `<div class="score"><b>${score}/${max}</b><span>Day result ${rfmt(total)}</span></div>${blocks}
+      <div class="btns"><button class="btn" id="again" type="button">Replay this session</button>${(() => { const j = SCEN.indexOf(s); const n = SCEN[j+1]; return n ? `<a class="btn primary" href="#drill-${n.id}">Next drill →</a>` : `<a class="btn primary" href="#exam">Final exam →</a>`; })()}</div>`;
+    $("#again").onclick = () => viewDrill(id);
+  }
+
+  render(); controls();
+  window.__drillCleanup = stopTimer;
+}
+
+/* ---------------- exam ---------------- */
+function viewExam(){
+  const pool = shuffle(MODULES.flatMap(m => m.quiz)).slice(0,10).concat(EXAM_EXTRA);
+  const qs = shuffle(pool);
+  const orders = qs.map(q => shuffle(q.c.map((c,j)=>j)));
+  const ans = new Array(qs.length).fill(null); let cur = 0;
+  function show(){
+    const q = qs[cur];
+    app.innerHTML = `<div class="eyebrow">Final exam · pass at 80%</div><h1>Question ${cur+1} of ${qs.length}</h1>
+    <div class="prog"><i style="width:${cur/qs.length*100}%"></i></div>
+    <div class="q"><div class="qt">${q.q}</div><div class="choices">${orders[cur].map(j=>`<button type="button" class="choice ${ans[cur]===j?"picked":""}" data-j="${j}">${q.c[j]}</button>`).join("")}</div></div>
+    <div class="pager"><button class="btn" id="bk" type="button" ${cur===0?"disabled":""}>← Back</button><button class="btn primary" id="fw" type="button" ${ans[cur]==null?"disabled":""}>${cur===qs.length-1?"Finish":"Next →"}</button></div>
+    <p class="muted">${S.exam.best!=null?"Best so far: "+S.exam.best+"%":"No feedback until the end."}</p>`;
+    app.querySelectorAll(".choice").forEach(b => b.onclick = () => { ans[cur] = +b.dataset.j; show(); });
+    $("#bk").onclick = () => { cur--; show(); };
+    $("#fw").onclick = () => { if(cur===qs.length-1) finish(); else { cur++; show(); } };
+  }
+  function finish(){
+    const right = qs.filter((q,i)=>ans[i]===q.a).length, pct = Math.round(right/qs.length*100);
+    S.exam.best = Math.max(S.exam.best||0, pct); S.exam.last = pct; save();
+    app.innerHTML = `<div class="eyebrow">Final exam</div><h1>${pct>=80?"Passed":"Not yet"}</h1>
+    <div class="score"><b>${right}/${qs.length}</b><span>${pct}% · best ${S.exam.best}%</span></div>
+    <div class="btns"><button class="btn primary" id="retry" type="button">New exam</button><a class="btn" href="#home">Course</a></div>
+    <h2>Review</h2>${qs.map((q,i)=>{ const ok = ans[i]===q.a; return `<div class="q"><div class="qn">${i+1} · <span class="verdict ${ok?"ok":"no"}">${ok?"RIGHT":"WRONG"}</span></div><div class="qt">${q.q}</div>${ok?"":`<p style="margin:.2rem 0" class="neg">Your answer: ${q.c[ans[i]]}</p>`}<p style="margin:.2rem 0" class="pos">Answer: ${q.c[q.a]}</p><div class="why">${q.why}</div></div>`; }).join("")}`;
+    $("#retry").onclick = viewExam;
+    window.scrollTo(0,0);
+  }
+  show();
+}
+
+/* ---------------- router ---------------- */
+function route(){
+  if(window.__drillCleanup){ window.__drillCleanup(); window.__drillCleanup = null; }
+  const h = (location.hash || "#home").slice(1);
+  if(MODULES.some(m => m.id===h)) viewModule(h);
+  else if(h === "drills") viewDrills();
+  else if(h.startsWith("drill-") && scen(h.slice(6))) viewDrill(h.slice(6));
+  else if(h === "exam") viewExam();
+  else viewHome();
+  window.scrollTo(0,0);
+}
+window.addEventListener("hashchange", route);
+setInterval(() => { const c = $("#etc"); if(c){ const ms = marketState(); c.textContent = ms.clock+" ET"; $("#ets").textContent = ms.st; c.previousElementSibling.className = "dot "+ms.cls; } }, 30000);
+
+/* ---------------- PWA ---------------- */
+let deferredPrompt = null;
+window.addEventListener("beforeinstallprompt", e => { e.preventDefault(); deferredPrompt = e; const el = $("#install"); if(el){ el.classList.add("show"); $("#installBtn").onclick = async () => { deferredPrompt.prompt(); await deferredPrompt.userChoice; deferredPrompt = null; el.classList.remove("show"); }; } });
+if("serviceWorker" in navigator && location.protocol.startsWith("http")){
+  window.addEventListener("load", () => navigator.serviceWorker.register("sw.js").catch(() => {}));
+}
+updatePct();
+route();
+</script>
+</body>
+</html>
